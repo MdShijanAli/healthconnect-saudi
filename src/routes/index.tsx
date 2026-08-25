@@ -241,7 +241,7 @@ function Index() {
         </section>
 
         {/* Role tabs */}
-        <section id="solutions" className="bg-surface py-20 sm:py-28">
+        <section id="solutions" className="scroll-mt-24 bg-surface py-20 sm:py-28">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading eyebrow={t.roles.eyebrow} title={t.roles.title} />
             <div className="mt-10 flex flex-wrap justify-center gap-2">
@@ -262,36 +262,43 @@ function Index() {
               ))}
             </div>
 
-            <div className="mt-12 grid items-center gap-10 rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-10 lg:grid-cols-2">
-              <div>
-                <h3 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-                  {t.roles.tabs[activeRole].heading}
-                </h3>
-                <ul className="mt-6 space-y-3.5">
-                  {t.roles.tabs[activeRole].points.map((point) => (
-                    <li key={point} className="flex items-start gap-3">
-                      <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground">
-                        <Check className="h-3.5 w-3.5" />
-                      </span>
-                      <span className="text-sm leading-relaxed text-muted-foreground">{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <img
-                src={roleImages[activeRole]}
-                alt={t.roles.tabs[activeRole].heading}
-                loading="lazy"
-                width={1200}
-                height={900}
-                className="w-full rounded-2xl border border-border object-cover shadow-soft"
-              />
-            </div>
+            {(() => {
+              const role = t.roles.tabs[activeRole] ?? t.roles.tabs[0]!;
+              return (
+                <div className="mt-12 grid items-center gap-10 rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-10 lg:grid-cols-2">
+                  <div>
+                    <h3 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                      {role.heading}
+                    </h3>
+                    <ul className="mt-6 space-y-3.5">
+                      {role.points.map((point) => (
+                        <li key={point} className="flex items-start gap-3">
+                          <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground">
+                            <Check className="h-3.5 w-3.5" />
+                          </span>
+                          <span className="text-sm leading-relaxed text-muted-foreground">{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <img
+                    src={roleImages[activeRole] ?? roleImages[0]}
+                    alt={role.heading}
+                    loading="lazy"
+                    width={1200}
+                    height={900}
+                    className="w-full rounded-2xl border border-border object-cover shadow-soft"
+                  />
+                </div>
+              );
+            })()}
+
           </div>
         </section>
 
         {/* Doctor registration */}
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+        <section id="providers" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+
           <SectionHeading
             eyebrow={t.doctorReg.eyebrow}
             title={t.doctorReg.title}
@@ -310,15 +317,19 @@ function Index() {
             ))}
           </div>
           <div className="mt-10 text-center">
-            <Button variant="hero" size="lg">
-              {t.doctorReg.cta}
-              <ArrowRight className={isRtl ? "rotate-180" : ""} />
+            <Button variant="hero" size="lg" asChild>
+              <a href="#contact">
+                {t.doctorReg.cta}
+                <ArrowRight className={isRtl ? "rotate-180" : ""} />
+              </a>
             </Button>
           </div>
+
         </section>
 
         {/* Patient booking flow */}
-        <section className="bg-surface py-20 sm:py-28">
+        <section id="booking" className="scroll-mt-24 bg-surface py-20 sm:py-28">
+
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading eyebrow={t.booking.eyebrow} title={t.booking.title} />
             <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -342,10 +353,11 @@ function Index() {
               })}
             </div>
             <div className="mt-10 text-center">
-              <Button variant="hero" size="lg">
-                {t.booking.cta}
+              <Button variant="hero" size="lg" asChild>
+                <a href="#contact">{t.booking.cta}</a>
               </Button>
             </div>
+
           </div>
         </section>
 

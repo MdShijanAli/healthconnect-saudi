@@ -7,9 +7,11 @@ export const content = {
       links: [
         { label: "Features", href: "#features" },
         { label: "Solutions", href: "#solutions" },
+        { label: "For Doctors", href: "#providers" },
+        { label: "Booking", href: "#booking" },
         { label: "Pricing", href: "#pricing" },
-        { label: "About", href: "#about" },
         { label: "Contact", href: "#contact" },
+
       ],
       login: "Login",
       getStarted: "Get Started",
@@ -291,9 +293,11 @@ export const content = {
       links: [
         { label: "المميزات", href: "#features" },
         { label: "الحلول", href: "#solutions" },
+        { label: "للأطباء", href: "#providers" },
+        { label: "الحجز", href: "#booking" },
         { label: "الأسعار", href: "#pricing" },
-        { label: "من نحن", href: "#about" },
         { label: "تواصل معنا", href: "#contact" },
+
       ],
       login: "تسجيل الدخول",
       getStarted: "ابدأ الآن",
