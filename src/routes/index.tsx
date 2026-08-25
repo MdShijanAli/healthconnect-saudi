@@ -311,11 +311,14 @@ function Index() {
             ))}
           </div>
           <div className="mt-10 text-center">
-            <Button variant="hero" size="lg">
-              {t.doctorReg.cta}
-              <ArrowRight className={isRtl ? "rotate-180" : ""} />
+            <Button variant="hero" size="lg" asChild>
+              <a href="#contact">
+                {t.doctorReg.cta}
+                <ArrowRight className={isRtl ? "rotate-180" : ""} />
+              </a>
             </Button>
           </div>
+
         </section>
 
         {/* Patient booking flow */}
