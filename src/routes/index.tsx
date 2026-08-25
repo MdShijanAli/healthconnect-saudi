@@ -291,7 +291,8 @@ function Index() {
         </section>
 
         {/* Doctor registration */}
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+        <section id="providers" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+
           <SectionHeading
             eyebrow={t.doctorReg.eyebrow}
             title={t.doctorReg.title}
