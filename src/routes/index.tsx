@@ -319,7 +319,8 @@ function Index() {
         </section>
 
         {/* Patient booking flow */}
-        <section className="bg-surface py-20 sm:py-28">
+        <section id="booking" className="scroll-mt-24 bg-surface py-20 sm:py-28">
+
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading eyebrow={t.booking.eyebrow} title={t.booking.title} />
             <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
