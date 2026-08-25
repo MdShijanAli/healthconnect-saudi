@@ -241,7 +241,7 @@ function Index() {
         </section>
 
         {/* Role tabs */}
-        <section id="solutions" className="bg-surface py-20 sm:py-28">
+        <section id="solutions" className="scroll-mt-24 bg-surface py-20 sm:py-28">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading eyebrow={t.roles.eyebrow} title={t.roles.title} />
             <div className="mt-10 flex flex-wrap justify-center gap-2">
