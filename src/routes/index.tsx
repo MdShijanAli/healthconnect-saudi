@@ -262,31 +262,37 @@ function Index() {
               ))}
             </div>
 
-            <div className="mt-12 grid items-center gap-10 rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-10 lg:grid-cols-2">
-              <div>
-                <h3 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-                  {t.roles.tabs[activeRole].heading}
-                </h3>
-                <ul className="mt-6 space-y-3.5">
-                  {t.roles.tabs[activeRole].points.map((point) => (
-                    <li key={point} className="flex items-start gap-3">
-                      <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground">
-                        <Check className="h-3.5 w-3.5" />
-                      </span>
-                      <span className="text-sm leading-relaxed text-muted-foreground">{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <img
-                src={roleImages[activeRole]}
-                alt={t.roles.tabs[activeRole].heading}
-                loading="lazy"
-                width={1200}
-                height={900}
-                className="w-full rounded-2xl border border-border object-cover shadow-soft"
-              />
-            </div>
+            {(() => {
+              const role = t.roles.tabs[activeRole] ?? t.roles.tabs[0]!;
+              return (
+                <div className="mt-12 grid items-center gap-10 rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-10 lg:grid-cols-2">
+                  <div>
+                    <h3 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                      {role.heading}
+                    </h3>
+                    <ul className="mt-6 space-y-3.5">
+                      {role.points.map((point) => (
+                        <li key={point} className="flex items-start gap-3">
+                          <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground">
+                            <Check className="h-3.5 w-3.5" />
+                          </span>
+                          <span className="text-sm leading-relaxed text-muted-foreground">{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <img
+                    src={roleImages[activeRole] ?? roleImages[0]}
+                    alt={role.heading}
+                    loading="lazy"
+                    width={1200}
+                    height={900}
+                    className="w-full rounded-2xl border border-border object-cover shadow-soft"
+                  />
+                </div>
+              );
+            })()}
+
           </div>
         </section>
 
