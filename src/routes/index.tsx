@@ -347,10 +347,11 @@ function Index() {
               })}
             </div>
             <div className="mt-10 text-center">
-              <Button variant="hero" size="lg">
-                {t.booking.cta}
+              <Button variant="hero" size="lg" asChild>
+                <a href="#contact">{t.booking.cta}</a>
               </Button>
             </div>
+
           </div>
         </section>
 
