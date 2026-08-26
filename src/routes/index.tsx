@@ -241,6 +241,33 @@ function Index() {
           </div>
         </section>
 
+        {/* Specialties */}
+        <section id="specialties" className="bg-surface py-20 sm:py-28">
+          <div className="mx-auto max-w-7xl scroll-mt-24 px-4 sm:px-6 lg:px-8">
+            <SectionHeading
+              eyebrow={t.specialties.eyebrow}
+              title={t.specialties.title}
+              subtitle={t.specialties.subtitle}
+            />
+            <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {t.specialties.items.map((name, i) => {
+                const Icon = specialtyIcons[i] ?? Stethoscope;
+                return (
+                  <article
+                    key={name}
+                    className="card-hover flex items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft"
+                  >
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <h3 className="text-sm font-bold tracking-tight">{name}</h3>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
         {/* Role tabs */}
         <section id="solutions" className="scroll-mt-24 bg-surface py-20 sm:py-28">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
