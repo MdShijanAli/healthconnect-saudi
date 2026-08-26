@@ -9,7 +9,11 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "db:link": "npx supabase link --project-ref egkrdvjfbjkgkocxobta",
+    "db:push": "npx supabase db push",
+    "db:pull": "npx supabase db pull",
+    "db:diff": "npx supabase db diff --linked"
   },
   "overrides": {
     "rolldown": "1.2.1"
