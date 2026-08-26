@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Activity,
@@ -176,11 +176,11 @@ function Index() {
               <Globe className="h-3.5 w-3.5" />
               {lang === "en" ? "AR" : "EN"}
             </button>
-            <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-              {t.nav.login}
+            <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
+              <Link to="/auth">{t.nav.login}</Link>
             </Button>
-            <Button variant="hero" size="sm">
-              {t.nav.getStarted}
+            <Button variant="hero" size="sm" asChild>
+              <Link to="/register">{t.nav.getStarted}</Link>
             </Button>
           </div>
         </nav>

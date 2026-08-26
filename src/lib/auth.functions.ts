@@ -1,6 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { completeRegistrationSchema, reviewDoctorSchema } from "@/lib/auth-schemas";
+import type { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+async function isSuperAdmin(admin: typeof supabaseAdmin, userId: string): Promise<boolean> {
+  const { data, error } = await admin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "super_admin")
+    .maybeSingle();
+  return !error && !!data;
+}
 
 export const completeRegistration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -76,13 +87,10 @@ export const getPortalContext = createServerFn({ method: "GET" })
 export const listPendingDoctors = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError || !isAdmin) throw new Error("Forbidden");
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const isAdmin = await isSuperAdmin(supabaseAdmin, context.userId);
+    if (!isAdmin) throw new Error("Forbidden");
+
     const { data: doctors, error } = await supabaseAdmin
       .from("doctor_profiles")
       .select("user_id, specialization, medical_license_number, years_experience, consultation_fee, bio, profile_photo_path, approval_status, created_at")
@@ -104,13 +112,10 @@ export const reviewDoctor = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => reviewDoctorSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError || !isAdmin) throw new Error("Forbidden");
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const isAdmin = await isSuperAdmin(supabaseAdmin, context.userId);
+    if (!isAdmin) throw new Error("Forbidden");
+
     const { error } = await supabaseAdmin
       .from("doctor_profiles")
       .update({ approval_status: data.status, reviewed_by: context.userId, reviewed_at: new Date().toISOString() })
