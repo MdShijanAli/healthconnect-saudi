@@ -26,10 +26,16 @@ export const completeRegistrationSchema = z.discriminatedUnion("role", [
   doctorRegistrationSchema,
 ]);
 
-export const reviewDoctorSchema = z.object({
-  doctorId: z.string().uuid(),
-  status: z.enum(["approved", "rejected"]),
-});
+export const reviewDoctorSchema = z
+  .object({
+    doctorId: z.string().uuid(),
+    status: z.enum(["approved", "rejected"]),
+    reason: z.string().trim().min(5).max(500).optional(),
+  })
+  .refine((value) => value.status !== "rejected" || !!value.reason, {
+    message: "A reason is required when rejecting an application.",
+    path: ["reason"],
+  });
 
 export type PortalRole = "super_admin" | "doctor" | "patient";
 export type DoctorStatus = "pending_approval" | "approved" | "rejected" | null;
