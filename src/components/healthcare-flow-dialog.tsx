@@ -184,10 +184,14 @@ export function HealthcareFlowDialog({
     }
   };
 
-  const updateDoctor = (key: keyof DoctorRegistrationInput, value: string | number) =>
+  const updateDoctor = (key: keyof DoctorRegistrationInput, value: string | number) => {
+    setError("");
     setDoctor((current) => ({ ...current, [key]: value }));
-  const updateBooking = (key: keyof PatientBookingInput, value: string) =>
+  };
+  const updateBooking = (key: keyof PatientBookingInput, value: string) => {
+    setError("");
     setBooking((current) => ({ ...current, [key]: value }));
+  };
 
   return (
     <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) reset(); }}>
