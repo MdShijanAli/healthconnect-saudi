@@ -1,17 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { completeRegistrationSchema, reviewDoctorSchema } from "@/lib/auth-schemas";
-import type { supabaseAdmin } from "@/integrations/supabase/client.server";
-
-async function isSuperAdmin(admin: typeof supabaseAdmin, userId: string): Promise<boolean> {
-  const { data, error } = await admin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "super_admin")
-    .maybeSingle();
-  return !error && !!data;
-}
+import { requireSuperAdmin } from "@/lib/require-admin";
 
 export const completeRegistration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -88,12 +78,13 @@ export const listPendingDoctors = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const isAdmin = await isSuperAdmin(supabaseAdmin, context.userId);
-    if (!isAdmin) throw new Error("Forbidden");
+    await requireSuperAdmin(supabaseAdmin, context.userId);
 
     const { data: doctors, error } = await supabaseAdmin
       .from("doctor_profiles")
-      .select("user_id, specialization, medical_license_number, years_experience, consultation_fee, bio, profile_photo_path, approval_status, created_at")
+      .select(
+        "user_id, specialization, medical_license_number, years_experience, consultation_fee, bio, profile_photo_path, approval_status, created_at",
+      )
       .eq("approval_status", "pending_approval")
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
@@ -105,7 +96,10 @@ export const listPendingDoctors = createServerFn({ method: "GET" })
     if (profileError) throw new Error(profileError.message);
     const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
 
-    return doctors.map((doctor) => ({ ...doctor, profile: profileById.get(doctor.user_id) ?? null }));
+    return doctors.map((doctor) => ({
+      ...doctor,
+      profile: profileById.get(doctor.user_id) ?? null,
+    }));
   });
 
 export const reviewDoctor = createServerFn({ method: "POST" })
@@ -113,12 +107,16 @@ export const reviewDoctor = createServerFn({ method: "POST" })
   .inputValidator((input) => reviewDoctorSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const isAdmin = await isSuperAdmin(supabaseAdmin, context.userId);
-    if (!isAdmin) throw new Error("Forbidden");
+    await requireSuperAdmin(supabaseAdmin, context.userId);
 
     const { error } = await supabaseAdmin
       .from("doctor_profiles")
-      .update({ approval_status: data.status, reviewed_by: context.userId, reviewed_at: new Date().toISOString() })
+      .update({
+        approval_status: data.status,
+        review_notes: data.reason ?? null,
+        reviewed_by: context.userId,
+        reviewed_at: new Date().toISOString(),
+      })
       .eq("user_id", data.doctorId)
       .eq("approval_status", "pending_approval");
     if (error) throw new Error(error.message);

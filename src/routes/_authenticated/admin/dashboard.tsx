@@ -1,21 +1,41 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { BadgeCheck, ShieldCheck, UserCheck, X } from "lucide-react";
-import { toast } from "sonner";
+import { CalendarClock, Stethoscope, Users, Wallet } from "lucide-react";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-import { PortalShell } from "@/components/portal-shell";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { listPendingDoctors, reviewDoctor } from "@/lib/auth.functions";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { getDashboardStats } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/dashboard")({
   head: () => ({
     meta: [
-      { title: "Admin Console — Sehaty Cloud" },
-      { name: "description", content: "Review doctor applications and manage the Sehaty Cloud network." },
-      { property: "og:title", content: "Admin Console — Sehaty Cloud" },
-      { property: "og:description", content: "Approve doctors and oversee the Sehaty Cloud clinic network." },
+      { title: "Admin Dashboard — Sehaty Cloud" },
+      {
+        name: "description",
+        content: "Platform overview: doctors, patients, appointments and revenue.",
+      },
+      { property: "og:title", content: "Admin Dashboard — Sehaty Cloud" },
+      {
+        property: "og:description",
+        content: "Approve providers and oversee the Sehaty Cloud clinic network.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -23,104 +43,149 @@ export const Route = createFileRoute("/_authenticated/admin/dashboard")({
   component: AdminDashboard,
 });
 
-type PendingDoctor = {
-  user_id: string;
-  specialization: string;
-  medical_license_number: string;
-  years_experience: number;
-  consultation_fee: number;
-  bio: string;
-  created_at: string;
-  profile: { full_name: string; phone: string } | null;
+type DashboardStats = Awaited<ReturnType<typeof getDashboardStats>>;
+
+const statusLabels: Record<string, string> = {
+  pending_approval: "Pending review",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
+const statusVariants: Record<string, "secondary" | "default" | "destructive"> = {
+  pending_approval: "secondary",
+  approved: "default",
+  rejected: "destructive",
 };
 
 function AdminDashboard() {
-  return (
-    <PortalShell allow="super_admin" title="Admin console" subtitle="Approve providers and keep the network trusted.">
-      {() => <PendingApprovals />}
-    </PortalShell>
-  );
-}
-
-function PendingApprovals() {
-  const fetchPending = useServerFn(listPendingDoctors);
-  const review = useServerFn(reviewDoctor);
-  const queryClient = useQueryClient();
-
-  const { data, isPending } = useQuery({
-    queryKey: ["pending-doctors"],
-    queryFn: () => fetchPending() as Promise<PendingDoctor[]>,
+  const fetchStats = useServerFn(getDashboardStats);
+  const { data, isPending, error } = useQuery({
+    queryKey: ["admin-dashboard-stats"],
+    queryFn: () => fetchStats() as Promise<DashboardStats>,
+    staleTime: 30_000,
   });
 
-  const mutation = useMutation({
-    mutationFn: (input: { doctorId: string; status: "approved" | "rejected" }) =>
-      review({ data: input }),
-    onSuccess: (_result, input) => {
-      toast.success(input.status === "approved" ? "Doctor approved" : "Application rejected");
-      queryClient.invalidateQueries({ queryKey: ["pending-doctors"] });
+  if (isPending) return <p className="text-sm text-muted-foreground">Loading dashboard…</p>;
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
+        <p className="text-sm font-medium text-destructive">{(error as Error).message}</p>
+      </div>
+    );
+  }
+
+  const stats = data!;
+  const chartData = stats.appointmentsLast7Days.map((d) => ({
+    label: new Date(d.date).toLocaleDateString(undefined, { weekday: "short" }),
+    count: d.count,
+  }));
+
+  const statCards = [
+    { icon: Stethoscope, label: "Total Doctors", value: stats.totalDoctors.toLocaleString() },
+    { icon: Users, label: "Total Patients", value: stats.totalPatients.toLocaleString() },
+    {
+      icon: CalendarClock,
+      label: "Today's Appointments",
+      value: stats.todaysAppointments.toLocaleString(),
     },
-    onError: (error: Error) => toast.error(error.message),
-  });
-
-  if (isPending) return <p className="text-sm text-muted-foreground">Loading applications…</p>;
-
-  const doctors = data ?? [];
+    { icon: Wallet, label: "Total Revenue", value: `SAR ${stats.totalRevenue.toLocaleString()}` },
+  ];
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center gap-2">
-        <ShieldCheck className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold">Doctor applications ({doctors.length})</h2>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Admin dashboard</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">Platform overview at a glance.</p>
       </div>
 
-      {doctors.length === 0 ? (
-        <div className="rounded-2xl border border-border/60 bg-card p-8 text-center shadow-sm">
-          <BadgeCheck className="mx-auto h-8 w-8 text-primary" />
-          <p className="mt-3 text-sm text-muted-foreground">No pending applications right now.</p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm"
+          >
+            <card.icon className="h-5 w-5 text-primary" />
+            <p className="mt-4 text-2xl font-bold">{card.value}</p>
+            <p className="text-sm text-muted-foreground">{card.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <h2 className="text-sm font-semibold">Appointments — last 7 days</h2>
+        <div className="mt-4 h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: -12 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 12 }}
+                stroke="currentColor"
+                className="text-muted-foreground"
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fontSize: 12 }}
+                stroke="currentColor"
+                className="text-muted-foreground"
+              />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid hsl(var(--border))",
+                  background: "hsl(var(--card))",
+                  fontSize: 13,
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="count"
+                name="Appointments"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2.5}
+                dot={{ r: 3 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
-      ) : (
-        <div className="grid gap-4">
-          {doctors.map((doctor) => (
-            <article
-              key={doctor.user_id}
-              className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-base font-semibold">{doctor.profile?.full_name ?? "Unnamed applicant"}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {doctor.specialization} · {doctor.years_experience} yrs · SAR {doctor.consultation_fee}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    License {doctor.medical_license_number} · {doctor.profile?.phone ?? "no phone"}
-                  </p>
-                </div>
-                <Badge variant="secondary" className="rounded-full">Pending review</Badge>
-              </div>
-              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{doctor.bio}</p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  className="rounded-full"
-                  disabled={mutation.isPending}
-                  onClick={() => mutation.mutate({ doctorId: doctor.user_id, status: "approved" })}
-                >
-                  <UserCheck className="mr-1.5 h-4 w-4" /> Approve
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="rounded-full"
-                  disabled={mutation.isPending}
-                  onClick={() => mutation.mutate({ doctorId: doctor.user_id, status: "rejected" })}
-                >
-                  <X className="mr-1.5 h-4 w-4" /> Reject
-                </Button>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
+      </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <h2 className="text-sm font-semibold">Recent doctor registration requests</h2>
+        {stats.recentDoctorRequests.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">No registration requests yet.</p>
+        ) : (
+          <div className="mt-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Specialization</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Submitted</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.recentDoctorRequests.map((doctor) => (
+                  <TableRow key={doctor.userId}>
+                    <TableCell className="font-medium">{doctor.fullName}</TableCell>
+                    <TableCell>{doctor.specialization}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={statusVariants[doctor.status] ?? "secondary"}
+                        className="rounded-full"
+                      >
+                        {statusLabels[doctor.status] ?? doctor.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{new Date(doctor.createdAt).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

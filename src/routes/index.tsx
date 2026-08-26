@@ -27,12 +27,6 @@ import {
   Instagram,
   Globe,
   UserPlus,
-  Baby,
-  Sparkles,
-  Smile,
-  Bone,
-  Flower2,
-  Brain,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -45,6 +39,8 @@ import {
 } from "@/components/ui/accordion";
 import { content, type Lang } from "@/lib/landing-content";
 import { HealthcareFlowDialog } from "@/components/healthcare-flow-dialog";
+import { useSpecializations } from "@/lib/specializations";
+import { getSpecializationIcon } from "@/lib/icon-registry";
 import heroConsult from "@/assets/hero-consult.jpg";
 import roleClinics from "@/assets/role-clinics.jpg";
 import roleDoctors from "@/assets/role-doctors.jpg";
@@ -101,16 +97,6 @@ const roleImages = [roleClinics, roleDoctors, rolePatients];
 const doctorImages = [doctor1, doctor2, doctor4, doctor3];
 const personImages = [person1, person2, person3];
 const spaceImages = [clinicReception, clinicRoom, clinicVitals];
-const specialtyIcons = [
-  Stethoscope,
-  Baby,
-  HeartPulse,
-  Sparkles,
-  Smile,
-  Bone,
-  Flower2,
-  Brain,
-];
 
 function SectionHeading({
   eyebrow,
@@ -131,7 +117,9 @@ function SectionHeading({
       <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
         {title}
       </h2>
-      {subtitle ? <p className="mt-4 text-base leading-relaxed text-muted-foreground">{subtitle}</p> : null}
+      {subtitle ? (
+        <p className="mt-4 text-base leading-relaxed text-muted-foreground">{subtitle}</p>
+      ) : null}
     </div>
   );
 }
@@ -141,6 +129,7 @@ function Index() {
   const [activeRole, setActiveRole] = useState(0);
   const t = content[lang];
   const isRtl = t.dir === "rtl";
+  const { data: specializations } = useSpecializations();
 
   return (
     <div dir={t.dir} lang={lang} className="min-h-screen bg-background">
@@ -198,8 +187,7 @@ function Index() {
                   {t.hero.badge}
                 </span>
                 <h1 className="mt-6 text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-                  {t.hero.title}{" "}
-                  <span className="text-gradient">{t.hero.titleAccent}</span>
+                  {t.hero.title} <span className="text-gradient">{t.hero.titleAccent}</span>
                 </h1>
                 <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
                   {t.hero.subtitle}
@@ -279,17 +267,17 @@ function Index() {
               subtitle={t.specialties.subtitle}
             />
             <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {t.specialties.items.map((name, i) => {
-                const Icon = specialtyIcons[i] ?? Stethoscope;
+              {(specializations ?? []).map((item) => {
+                const Icon = getSpecializationIcon(item.icon);
                 return (
                   <article
-                    key={name}
+                    key={item.id}
                     className="card-hover flex items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft"
                   >
                     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
                       <Icon className="h-5 w-5" />
                     </span>
-                    <h3 className="text-sm font-bold tracking-tight">{name}</h3>
+                    <h3 className="text-sm font-bold tracking-tight">{item.name}</h3>
                   </article>
                 );
               })}
@@ -333,7 +321,9 @@ function Index() {
                           <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground">
                             <Check className="h-3.5 w-3.5" />
                           </span>
-                          <span className="text-sm leading-relaxed text-muted-foreground">{point}</span>
+                          <span className="text-sm leading-relaxed text-muted-foreground">
+                            {point}
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -349,12 +339,14 @@ function Index() {
                 </div>
               );
             })()}
-
           </div>
         </section>
 
         {/* Meet our doctors */}
-        <section id="doctors" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+        <section
+          id="doctors"
+          className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-8"
+        >
           <SectionHeading
             eyebrow={t.doctors.eyebrow}
             title={t.doctors.title}
@@ -391,8 +383,10 @@ function Index() {
         </section>
 
         {/* Doctor registration */}
-        <section id="providers" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
-
+        <section
+          id="providers"
+          className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-8"
+        >
           <SectionHeading
             eyebrow={t.doctorReg.eyebrow}
             title={t.doctorReg.title}
@@ -418,12 +412,10 @@ function Index() {
               </Button>
             </HealthcareFlowDialog>
           </div>
-
         </section>
 
         {/* Patient booking flow */}
         <section id="booking" className="scroll-mt-24 bg-surface py-20 sm:py-28">
-
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading eyebrow={t.booking.eyebrow} title={t.booking.title} />
             <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -441,17 +433,20 @@ function Index() {
                       {`0${i + 1}`}
                     </p>
                     <h3 className="mt-1 text-base font-bold tracking-tight">{step.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {step.desc}
+                    </p>
                   </article>
                 );
               })}
             </div>
             <div className="mt-10 text-center">
               <HealthcareFlowDialog type="booking" lang={lang}>
-                <Button variant="hero" size="lg">{t.booking.cta}</Button>
+                <Button variant="hero" size="lg">
+                  {t.booking.cta}
+                </Button>
               </HealthcareFlowDialog>
             </div>
-
           </div>
         </section>
 
@@ -510,7 +505,9 @@ function Index() {
                       <Icon className="h-6 w-6" />
                     </span>
                     <h3 className="mt-5 text-base font-bold tracking-tight">{item.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {item.desc}
+                    </p>
                   </article>
                 );
               })}
@@ -527,7 +524,10 @@ function Index() {
           />
           <div className="mt-14 grid gap-5 sm:grid-cols-3">
             {spaceImages.map((src, i) => (
-              <figure key={src} className="card-hover overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
+              <figure
+                key={src}
+                className="card-hover overflow-hidden rounded-3xl border border-border bg-card shadow-soft"
+              >
                 <img
                   src={src}
                   alt={t.space.captions[i] ?? t.space.title}
@@ -543,7 +543,6 @@ function Index() {
             ))}
           </div>
         </section>
-
 
         {/* Testimonials */}
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
@@ -610,7 +609,10 @@ function Index() {
                   </p>
                   <ul className="mt-6 flex-1 space-y-3">
                     {tier.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                      <li
+                        key={f}
+                        className="flex items-start gap-2.5 text-sm text-muted-foreground"
+                      >
                         <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         {f}
                       </li>
@@ -699,7 +701,9 @@ function Index() {
                 <span className="gradient-brand grid h-9 w-9 shrink-0 place-items-center rounded-xl text-primary-foreground">
                   <HeartPulse className="h-5 w-5" />
                 </span>
-                <span className="truncate text-lg font-extrabold tracking-tight">{t.nav.brand}</span>
+                <span className="truncate text-lg font-extrabold tracking-tight">
+                  {t.nav.brand}
+                </span>
               </div>
               <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
                 {t.footer.about}
