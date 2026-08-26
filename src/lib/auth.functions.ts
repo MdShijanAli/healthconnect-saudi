@@ -71,6 +71,7 @@ export const getPortalContext = createServerFn({ method: "GET" })
       phone: portal.phone,
       role: portal.role,
       doctorStatus: portal.doctor_status,
+      patientBlocked: portal.patient_blocked ?? false,
     };
   });
 
