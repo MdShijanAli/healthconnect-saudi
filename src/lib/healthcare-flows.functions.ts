@@ -3,9 +3,8 @@ import { createServerFn } from "@tanstack/react-start";
 import {
   doctorRegistrationSchema,
   patientBookingSchema,
-  saveDoctorRegistration,
-  savePatientBooking,
-} from "./healthcare-flows.server";
+} from "./healthcare-flow-schemas";
+import { saveDoctorRegistration, savePatientBooking } from "./healthcare-flows.server";
 
 export const submitDoctorRegistration = createServerFn({ method: "POST" })
   .inputValidator((data) => doctorRegistrationSchema.parse(data))
