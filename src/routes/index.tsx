@@ -39,11 +39,21 @@ import {
 } from "@/components/ui/accordion";
 import { content, type Lang } from "@/lib/landing-content";
 import { HealthcareFlowDialog } from "@/components/healthcare-flow-dialog";
-import heroDashboard from "@/assets/hero-dashboard.jpg";
+import heroConsult from "@/assets/hero-consult.jpg";
 import roleClinics from "@/assets/role-clinics.jpg";
 import roleDoctors from "@/assets/role-doctors.jpg";
 import rolePatients from "@/assets/role-patients.jpg";
 import appPreview from "@/assets/app-preview.png";
+import doctor1 from "@/assets/doctor-1.jpg";
+import doctor2 from "@/assets/doctor-2.jpg";
+import doctor3 from "@/assets/doctor-3.jpg";
+import doctor4 from "@/assets/doctor-4.jpg";
+import person1 from "@/assets/person-1.jpg";
+import person2 from "@/assets/person-2.jpg";
+import person3 from "@/assets/person-3.jpg";
+import clinicReception from "@/assets/clinic-reception.jpg";
+import clinicRoom from "@/assets/clinic-room.jpg";
+import clinicVitals from "@/assets/clinic-vitals.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
