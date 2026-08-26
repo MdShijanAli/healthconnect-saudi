@@ -92,6 +92,19 @@ const featureIcons = [
 const securityIcons = [Lock, KeyRound, ScrollText, ShieldCheck];
 const bookingIcons = [UserPlus, Search, CalendarCheck, HeartPulse];
 const roleImages = [roleClinics, roleDoctors, rolePatients];
+const doctorImages = [doctor1, doctor2, doctor3, doctor4];
+const personImages = [person1, person2, person3];
+const spaceImages = [clinicReception, clinicRoom, clinicVitals];
+const specialtyIcons = [
+  Stethoscope,
+  Baby,
+  HeartPulse,
+  Sparkles,
+  Smile,
+  Bone,
+  Flower2,
+  Brain,
+];
 
 function SectionHeading({
   eyebrow,
