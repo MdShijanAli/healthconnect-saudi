@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      doctor_profiles: {
+        Row: {
+          approval_status: Database["public"]["Enums"]["doctor_approval_status"]
+          bio: string
+          consultation_fee: number
+          created_at: string
+          medical_license_number: string
+          profile_photo_path: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          specialization: string
+          updated_at: string
+          user_id: string
+          years_experience: number
+        }
+        Insert: {
+          approval_status?: Database["public"]["Enums"]["doctor_approval_status"]
+          bio: string
+          consultation_fee: number
+          created_at?: string
+          medical_license_number: string
+          profile_photo_path?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specialization: string
+          updated_at?: string
+          user_id: string
+          years_experience: number
+        }
+        Update: {
+          approval_status?: Database["public"]["Enums"]["doctor_approval_status"]
+          bio?: string
+          consultation_fee?: number
+          created_at?: string
+          medical_license_number?: string
+          profile_photo_path?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specialization?: string
+          updated_at?: string
+          user_id?: string
+          years_experience?: number
+        }
+        Relationships: []
+      }
       doctor_registrations: {
         Row: {
           city: string
@@ -110,15 +155,94 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_profiles: {
+        Row: {
+          created_at: string
+          date_of_birth: string
+          gender: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_of_birth: string
+          gender: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date_of_birth?: string
+          gender?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name: string
+          id: string
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_my_portal_context: {
+        Args: never
+        Returns: {
+          doctor_status: Database["public"]["Enums"]["doctor_approval_status"]
+          full_name: string
+          phone: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "doctor" | "patient"
+      doctor_approval_status: "pending_approval" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -245,6 +369,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "doctor", "patient"],
+      doctor_approval_status: ["pending_approval", "approved", "rejected"],
+    },
   },
 } as const
