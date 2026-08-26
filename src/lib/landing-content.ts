@@ -286,6 +286,40 @@ export const content = {
       rights: "© 2026 Sehaty Cloud. All rights reserved.",
       location: "Riyadh, Saudi Arabia",
     },
+    specialties: {
+      eyebrow: "Specialties",
+      title: "The care we provide",
+      subtitle: "Multidisciplinary teams under one roof and one shared patient record.",
+      items: [
+        "Family Medicine",
+        "Pediatrics",
+        "Cardiology",
+        "Dermatology",
+        "Dentistry",
+        "Orthopedics",
+        "Obstetrics & Gynecology",
+        "Mental Health",
+      ],
+    },
+    doctors: {
+      eyebrow: "Our team",
+      title: "Meet our doctors",
+      subtitle: "Consultants licensed by the Saudi Commission for Health Specialties.",
+      cta: "Book Appointment",
+      items: [
+        { name: "Dr. Layla Al-Harbi", specialty: "Family Medicine", experience: "12 years experience" },
+        { name: "Dr. Omar Al-Shammari", specialty: "Cardiology", experience: "15 years experience" },
+        { name: "Dr. Noura Al-Otaibi", specialty: "Pediatrics", experience: "9 years experience" },
+        { name: "Dr. Khalid Al-Dosari", specialty: "Orthopedics", experience: "18 years experience" },
+      ],
+    },
+    space: {
+      eyebrow: "Our clinic",
+      title: "A space designed for care",
+      subtitle: "Calm reception areas, modern consultation rooms and attentive nursing teams.",
+      captions: ["Reception area", "Consultation room", "Vitals check"],
+    },
+
   },
   ar: {
     dir: "rtl" as const,
