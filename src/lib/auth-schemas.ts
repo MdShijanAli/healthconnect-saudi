@@ -46,4 +46,5 @@ export type PortalContext = {
   phone: string;
   role: PortalRole;
   doctorStatus: DoctorStatus;
+  patientBlocked: boolean;
 };

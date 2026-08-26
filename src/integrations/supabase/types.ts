@@ -12,35 +12,128 @@ export type Database = {
         Row: {
           appointment_date: string;
           appointment_time: string;
+          cancel_reason: string | null;
           created_at: string;
           doctor_id: string;
           fee: number;
           id: string;
           patient_id: string;
+          reason: string | null;
           status: string;
           updated_at: string;
         };
         Insert: {
           appointment_date: string;
           appointment_time: string;
+          cancel_reason?: string | null;
           created_at?: string;
           doctor_id: string;
           fee?: number;
           id?: string;
           patient_id: string;
+          reason?: string | null;
           status?: string;
           updated_at?: string;
         };
         Update: {
           appointment_date?: string;
           appointment_time?: string;
+          cancel_reason?: string | null;
           created_at?: string;
           doctor_id?: string;
           fee?: number;
           id?: string;
           patient_id?: string;
+          reason?: string | null;
           status?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      doctor_availability: {
+        Row: {
+          created_at: string;
+          day_of_week: number;
+          doctor_id: string;
+          end_time: string;
+          id: string;
+          is_enabled: boolean;
+          start_time: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          day_of_week: number;
+          doctor_id: string;
+          end_time?: string;
+          id?: string;
+          is_enabled?: boolean;
+          start_time?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          day_of_week?: number;
+          doctor_id?: string;
+          end_time?: string;
+          id?: string;
+          is_enabled?: boolean;
+          start_time?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      doctor_medicines: {
+        Row: {
+          category: string | null;
+          common_dosage: string | null;
+          created_at: string;
+          doctor_id: string;
+          id: string;
+          name: string;
+          updated_at: string;
+        };
+        Insert: {
+          category?: string | null;
+          common_dosage?: string | null;
+          created_at?: string;
+          doctor_id: string;
+          id?: string;
+          name: string;
+          updated_at?: string;
+        };
+        Update: {
+          category?: string | null;
+          common_dosage?: string | null;
+          created_at?: string;
+          doctor_id?: string;
+          id?: string;
+          name?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      doctor_unavailable_dates: {
+        Row: {
+          created_at: string;
+          date: string;
+          doctor_id: string;
+          id: string;
+          reason: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          date: string;
+          doctor_id: string;
+          id?: string;
+          reason?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          date?: string;
+          doctor_id?: string;
+          id?: string;
+          reason?: string | null;
         };
         Relationships: [];
       };
@@ -191,12 +284,46 @@ export type Database = {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: string;
+          is_read: boolean;
+          related_appointment_id: string | null;
+          title: string;
+          type: string;
+          user_id: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          id?: string;
+          is_read?: boolean;
+          related_appointment_id?: string | null;
+          title: string;
+          type: string;
+          user_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: string;
+          is_read?: boolean;
+          related_appointment_id?: string | null;
+          title?: string;
+          type?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       patient_profiles: {
         Row: {
           created_at: string;
           date_of_birth: string;
           gender: string;
           is_blocked: boolean;
+          profile_photo_path: string | null;
           updated_at: string;
           user_id: string;
         };
@@ -205,6 +332,7 @@ export type Database = {
           date_of_birth: string;
           gender: string;
           is_blocked?: boolean;
+          profile_photo_path?: string | null;
           updated_at?: string;
           user_id: string;
         };
@@ -213,8 +341,78 @@ export type Database = {
           date_of_birth?: string;
           gender?: string;
           is_blocked?: boolean;
+          profile_photo_path?: string | null;
           updated_at?: string;
           user_id?: string;
+        };
+        Relationships: [];
+      };
+      prescription_items: {
+        Row: {
+          created_at: string;
+          dosage: string | null;
+          duration: string | null;
+          frequency: string | null;
+          id: string;
+          instructions: string | null;
+          medicine_id: string | null;
+          medicine_name: string;
+          prescription_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          dosage?: string | null;
+          duration?: string | null;
+          frequency?: string | null;
+          id?: string;
+          instructions?: string | null;
+          medicine_id?: string | null;
+          medicine_name: string;
+          prescription_id: string;
+        };
+        Update: {
+          created_at?: string;
+          dosage?: string | null;
+          duration?: string | null;
+          frequency?: string | null;
+          id?: string;
+          instructions?: string | null;
+          medicine_id?: string | null;
+          medicine_name?: string;
+          prescription_id?: string;
+        };
+        Relationships: [];
+      };
+      prescriptions: {
+        Row: {
+          advice_notes: string | null;
+          appointment_id: string;
+          created_at: string;
+          diagnosis_notes: string | null;
+          doctor_id: string;
+          id: string;
+          patient_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          advice_notes?: string | null;
+          appointment_id: string;
+          created_at?: string;
+          diagnosis_notes?: string | null;
+          doctor_id: string;
+          id?: string;
+          patient_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          advice_notes?: string | null;
+          appointment_id?: string;
+          created_at?: string;
+          diagnosis_notes?: string | null;
+          doctor_id?: string;
+          id?: string;
+          patient_id?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -336,9 +534,22 @@ export type Database = {
         Returns: {
           doctor_status: Database["public"]["Enums"]["doctor_approval_status"];
           full_name: string;
+          patient_blocked: boolean | null;
           phone: string;
           role: Database["public"]["Enums"]["app_role"];
           user_id: string;
+        }[];
+      };
+      list_public_doctors: {
+        Args: never;
+        Returns: {
+          bio: string;
+          consultation_fee: number;
+          full_name: string;
+          profile_photo_path: string | null;
+          specialization: string;
+          user_id: string;
+          years_experience: number;
         }[];
       };
     };
