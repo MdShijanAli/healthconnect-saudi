@@ -27,6 +27,12 @@ import {
   Instagram,
   Globe,
   UserPlus,
+  Baby,
+  Sparkles,
+  Smile,
+  Bone,
+  Flower2,
+  Brain,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -39,11 +45,21 @@ import {
 } from "@/components/ui/accordion";
 import { content, type Lang } from "@/lib/landing-content";
 import { HealthcareFlowDialog } from "@/components/healthcare-flow-dialog";
-import heroDashboard from "@/assets/hero-dashboard.jpg";
+import heroConsult from "@/assets/hero-consult.jpg";
 import roleClinics from "@/assets/role-clinics.jpg";
 import roleDoctors from "@/assets/role-doctors.jpg";
 import rolePatients from "@/assets/role-patients.jpg";
 import appPreview from "@/assets/app-preview.png";
+import doctor1 from "@/assets/doctor-1.jpg";
+import doctor2 from "@/assets/doctor-2.jpg";
+import doctor3 from "@/assets/doctor-3.jpg";
+import doctor4 from "@/assets/doctor-4.jpg";
+import person1 from "@/assets/person-1.jpg";
+import person2 from "@/assets/person-2.jpg";
+import person3 from "@/assets/person-3.jpg";
+import clinicReception from "@/assets/clinic-reception.jpg";
+import clinicRoom from "@/assets/clinic-room.jpg";
+import clinicVitals from "@/assets/clinic-vitals.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -82,6 +98,19 @@ const featureIcons = [
 const securityIcons = [Lock, KeyRound, ScrollText, ShieldCheck];
 const bookingIcons = [UserPlus, Search, CalendarCheck, HeartPulse];
 const roleImages = [roleClinics, roleDoctors, rolePatients];
+const doctorImages = [doctor1, doctor2, doctor4, doctor3];
+const personImages = [person1, person2, person3];
+const spaceImages = [clinicReception, clinicRoom, clinicVitals];
+const specialtyIcons = [
+  Stethoscope,
+  Baby,
+  HeartPulse,
+  Sparkles,
+  Smile,
+  Bone,
+  Flower2,
+  Brain,
+];
 
 function SectionHeading({
   eyebrow,
@@ -190,11 +219,11 @@ function Index() {
               <div className="relative">
                 <div className="gradient-brand absolute -inset-3 rounded-[2rem] opacity-15 blur-2xl" />
                 <img
-                  src={heroDashboard}
-                  alt="Sehaty Cloud clinic dashboard showing appointments, patients and analytics"
+                  src={heroConsult}
+                  alt="Doctor consulting with a patient in a Saudi clinic"
                   width={1600}
-                  height={1104}
-                  className="relative w-full rounded-3xl border border-border/70 shadow-lift"
+                  height={1200}
+                  className="relative w-full rounded-3xl border border-border/70 object-cover shadow-lift"
                 />
               </div>
             </div>
@@ -238,6 +267,33 @@ function Index() {
                 </article>
               );
             })}
+          </div>
+        </section>
+
+        {/* Specialties */}
+        <section id="specialties" className="bg-surface py-20 sm:py-28">
+          <div className="mx-auto max-w-7xl scroll-mt-24 px-4 sm:px-6 lg:px-8">
+            <SectionHeading
+              eyebrow={t.specialties.eyebrow}
+              title={t.specialties.title}
+              subtitle={t.specialties.subtitle}
+            />
+            <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {t.specialties.items.map((name, i) => {
+                const Icon = specialtyIcons[i] ?? Stethoscope;
+                return (
+                  <article
+                    key={name}
+                    className="card-hover flex items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft"
+                  >
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <h3 className="text-sm font-bold tracking-tight">{name}</h3>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         </section>
 
@@ -294,6 +350,43 @@ function Index() {
               );
             })()}
 
+          </div>
+        </section>
+
+        {/* Meet our doctors */}
+        <section id="doctors" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+          <SectionHeading
+            eyebrow={t.doctors.eyebrow}
+            title={t.doctors.title}
+            subtitle={t.doctors.subtitle}
+          />
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {t.doctors.items.map((doc, i) => (
+              <article
+                key={doc.name}
+                className="card-hover flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft"
+              >
+                <img
+                  src={doctorImages[i] ?? doctorImages[0]}
+                  alt={`${doc.name} — ${doc.specialty}`}
+                  loading="lazy"
+                  width={800}
+                  height={800}
+                  className="h-56 w-full object-cover"
+                />
+                <div className="flex flex-1 flex-col p-6">
+                  <h3 className="text-base font-bold tracking-tight">{doc.name}</h3>
+                  <p className="mt-1 text-sm font-medium text-primary">{doc.specialty}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{doc.experience}</p>
+                  <div className="mt-5 flex-1" />
+                  <HealthcareFlowDialog type="booking" lang={lang}>
+                    <Button variant="outline" className="w-full">
+                      {t.doctors.cta}
+                    </Button>
+                  </HealthcareFlowDialog>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -425,11 +518,38 @@ function Index() {
           </div>
         </section>
 
+        {/* Clinic space */}
+        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+          <SectionHeading
+            eyebrow={t.space.eyebrow}
+            title={t.space.title}
+            subtitle={t.space.subtitle}
+          />
+          <div className="mt-14 grid gap-5 sm:grid-cols-3">
+            {spaceImages.map((src, i) => (
+              <figure key={src} className="card-hover overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
+                <img
+                  src={src}
+                  alt={t.space.captions[i] ?? t.space.title}
+                  loading="lazy"
+                  width={1200}
+                  height={900}
+                  className="h-64 w-full object-cover"
+                />
+                <figcaption className="px-5 py-4 text-sm font-semibold text-muted-foreground">
+                  {t.space.captions[i]}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+
+
         {/* Testimonials */}
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
           <SectionHeading eyebrow={t.testimonials.eyebrow} title={t.testimonials.title} />
           <div className="mt-14 grid gap-5 lg:grid-cols-3">
-            {t.testimonials.items.map((item) => (
+            {t.testimonials.items.map((item, i) => (
               <figure
                 key={item.name}
                 className="card-hover flex h-full flex-col rounded-3xl border border-border bg-card p-7 shadow-soft"
@@ -439,9 +559,15 @@ function Index() {
                   {item.quote}
                 </blockquote>
                 <figcaption className="mt-6 flex min-w-0 items-center gap-3 border-t border-border pt-5">
-                  <span className="gradient-brand grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-bold text-primary-foreground">
-                    {item.name.replace("Dr. ", "").charAt(0)}
-                  </span>
+                  <img
+                    src={personImages[i] ?? personImages[0]}
+                    alt={item.name}
+                    loading="lazy"
+                    width={88}
+                    height={88}
+                    className="h-11 w-11 shrink-0 rounded-full object-cover"
+                  />
+
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-bold">{item.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">

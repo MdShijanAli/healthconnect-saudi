@@ -286,6 +286,40 @@ export const content = {
       rights: "© 2026 Sehaty Cloud. All rights reserved.",
       location: "Riyadh, Saudi Arabia",
     },
+    specialties: {
+      eyebrow: "Specialties",
+      title: "The care we provide",
+      subtitle: "Multidisciplinary teams under one roof and one shared patient record.",
+      items: [
+        "Family Medicine",
+        "Pediatrics",
+        "Cardiology",
+        "Dermatology",
+        "Dentistry",
+        "Orthopedics",
+        "Obstetrics & Gynecology",
+        "Mental Health",
+      ],
+    },
+    doctors: {
+      eyebrow: "Our team",
+      title: "Meet our doctors",
+      subtitle: "Consultants licensed by the Saudi Commission for Health Specialties.",
+      cta: "Book Appointment",
+      items: [
+        { name: "Dr. Layla Al-Harbi", specialty: "Family Medicine", experience: "12 years experience" },
+        { name: "Dr. Omar Al-Shammari", specialty: "Cardiology", experience: "15 years experience" },
+        { name: "Dr. Noura Al-Otaibi", specialty: "Pediatrics", experience: "9 years experience" },
+        { name: "Dr. Khalid Al-Dosari", specialty: "Orthopedics", experience: "18 years experience" },
+      ],
+    },
+    space: {
+      eyebrow: "Our clinic",
+      title: "A space designed for care",
+      subtitle: "Calm reception areas, modern consultation rooms and attentive nursing teams.",
+      captions: ["Reception area", "Consultation room", "Vitals check"],
+    },
+
   },
   ar: {
     dir: "rtl" as const,
@@ -536,5 +570,39 @@ export const content = {
       rights: "© ٢٠٢٦ صحتي كلاود. جميع الحقوق محفوظة.",
       location: "الرياض، المملكة العربية السعودية",
     },
+    specialties: {
+      eyebrow: "التخصصات",
+      title: "الرعاية التي نقدمها",
+      subtitle: "فرق متعددة التخصصات تعمل تحت سقف واحد وسجل مريض واحد.",
+      items: [
+        "طب الأسرة",
+        "طب الأطفال",
+        "أمراض القلب",
+        "الجلدية",
+        "الأسنان",
+        "العظام",
+        "النساء والولادة",
+        "الصحة النفسية",
+      ],
+    },
+    doctors: {
+      eyebrow: "فريقنا",
+      title: "تعرّف على أطبائنا",
+      subtitle: "أطباء مرخّصون من الهيئة السعودية للتخصصات الصحية.",
+      cta: "احجز موعدًا",
+      items: [
+        { name: "د. ليلى الحربي", specialty: "طب الأسرة", experience: "١٢ سنة خبرة" },
+        { name: "د. عمر الشمري", specialty: "أمراض القلب", experience: "١٥ سنة خبرة" },
+        { name: "د. نورة العتيبي", specialty: "طب الأطفال", experience: "٩ سنوات خبرة" },
+        { name: "د. خالد الدوسري", specialty: "العظام", experience: "١٨ سنة خبرة" },
+      ],
+    },
+    space: {
+      eyebrow: "عيادتنا",
+      title: "مساحة مصمّمة للرعاية",
+      subtitle: "استقبال هادئ، غرف كشف حديثة، وفرق تمريض تهتم بالتفاصيل.",
+      captions: ["منطقة الاستقبال", "غرفة الكشف", "قياس العلامات الحيوية"],
+    },
+
   },
 };
