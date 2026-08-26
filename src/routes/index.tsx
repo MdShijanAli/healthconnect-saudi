@@ -38,6 +38,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { content, type Lang } from "@/lib/landing-content";
+import { HealthcareFlowDialog } from "@/components/healthcare-flow-dialog";
 import heroDashboard from "@/assets/hero-dashboard.jpg";
 import roleClinics from "@/assets/role-clinics.jpg";
 import roleDoctors from "@/assets/role-doctors.jpg";
@@ -317,12 +318,12 @@ function Index() {
             ))}
           </div>
           <div className="mt-10 text-center">
-            <Button variant="hero" size="lg" asChild>
-              <a href="#contact">
+            <HealthcareFlowDialog type="doctor" lang={lang}>
+              <Button variant="hero" size="lg">
                 {t.doctorReg.cta}
                 <ArrowRight className={isRtl ? "rotate-180" : ""} />
-              </a>
-            </Button>
+              </Button>
+            </HealthcareFlowDialog>
           </div>
 
         </section>
@@ -353,9 +354,9 @@ function Index() {
               })}
             </div>
             <div className="mt-10 text-center">
-              <Button variant="hero" size="lg" asChild>
-                <a href="#contact">{t.booking.cta}</a>
-              </Button>
+              <HealthcareFlowDialog type="booking" lang={lang}>
+                <Button variant="hero" size="lg">{t.booking.cta}</Button>
+              </HealthcareFlowDialog>
             </div>
 
           </div>
