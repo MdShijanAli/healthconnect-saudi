@@ -425,6 +425,33 @@ function Index() {
           </div>
         </section>
 
+        {/* Clinic space */}
+        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+          <SectionHeading
+            eyebrow={t.space.eyebrow}
+            title={t.space.title}
+            subtitle={t.space.subtitle}
+          />
+          <div className="mt-14 grid gap-5 sm:grid-cols-3">
+            {spaceImages.map((src, i) => (
+              <figure key={src} className="card-hover overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
+                <img
+                  src={src}
+                  alt={t.space.captions[i] ?? t.space.title}
+                  loading="lazy"
+                  width={1200}
+                  height={900}
+                  className="h-64 w-full object-cover"
+                />
+                <figcaption className="px-5 py-4 text-sm font-semibold text-muted-foreground">
+                  {t.space.captions[i]}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+
+
         {/* Testimonials */}
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
           <SectionHeading eyebrow={t.testimonials.eyebrow} title={t.testimonials.title} />
