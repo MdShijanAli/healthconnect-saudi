@@ -81,10 +81,30 @@ function DoctorDashboard() {
 
   const stats = data!;
   const statCards = [
-    { icon: CalendarDays, label: "Today's Appointments", value: stats.todaysAppointments },
-    { icon: ClipboardList, label: "Pending Prescriptions", value: stats.pendingPrescriptions },
-    { icon: Users, label: "Total Patients", value: stats.totalPatients },
-    { icon: CalendarClock, label: "This Week's Schedule", value: stats.thisWeekSchedule },
+    {
+      icon: CalendarDays,
+      label: "Today's Appointments",
+      value: stats.todaysAppointments,
+      accent: "bg-primary/10 text-primary",
+    },
+    {
+      icon: ClipboardList,
+      label: "Pending Prescriptions",
+      value: stats.pendingPrescriptions,
+      accent: "bg-violet/10 text-violet",
+    },
+    {
+      icon: Users,
+      label: "Total Patients",
+      value: stats.totalPatients,
+      accent: "bg-chart-2/15 text-chart-2",
+    },
+    {
+      icon: CalendarClock,
+      label: "This Week's Schedule",
+      value: stats.thisWeekSchedule,
+      accent: "bg-chart-4/15 text-chart-4",
+    },
   ];
 
   function openReschedule(appointment: TodayAppointment) {
@@ -95,25 +115,32 @@ function DoctorDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Doctor dashboard</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">Your clinic day at a glance.</p>
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card p-6 shadow-soft sm:p-8">
+        <div className="glow-top pointer-events-none absolute inset-0" />
+        <div className="relative">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Doctor dashboard</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">Your clinic day at a glance.</p>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => (
           <div
             key={card.label}
-            className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm"
+            className="card-hover rounded-2xl border border-border/60 bg-card p-6 shadow-soft"
           >
-            <card.icon className="h-5 w-5 text-primary" />
-            <p className="mt-4 text-2xl font-bold">{card.value.toLocaleString()}</p>
+            <span
+              className={`flex h-10 w-10 items-center justify-center rounded-xl ${card.accent}`}
+            >
+              <card.icon className="h-5 w-5" />
+            </span>
+            <p className="mt-4 text-2xl font-bold tracking-tight">{card.value.toLocaleString()}</p>
             <p className="text-sm text-muted-foreground">{card.label}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+      <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-soft">
         <h2 className="text-sm font-semibold">Today's appointments</h2>
         {stats.todayAppointmentsList.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">No appointments scheduled for today.</p>
@@ -122,7 +149,7 @@ function DoctorDashboard() {
             {stats.todayAppointmentsList.map((appointment) => (
               <div
                 key={appointment.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 p-4"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 p-4 transition-colors hover:bg-secondary/50"
               >
                 <div>
                   <p className="text-sm font-semibold">{appointment.patientName}</p>
