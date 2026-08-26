@@ -429,7 +429,7 @@ function Index() {
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
           <SectionHeading eyebrow={t.testimonials.eyebrow} title={t.testimonials.title} />
           <div className="mt-14 grid gap-5 lg:grid-cols-3">
-            {t.testimonials.items.map((item) => (
+            {t.testimonials.items.map((item, i) => (
               <figure
                 key={item.name}
                 className="card-hover flex h-full flex-col rounded-3xl border border-border bg-card p-7 shadow-soft"
