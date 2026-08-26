@@ -1,5 +1,8 @@
+import { createServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+
+import { mockDb } from "@/lib/mock-db";
 
 export type Specialization = {
   id: string;
@@ -9,17 +12,25 @@ export type Specialization = {
   display_order: number;
 };
 
+export const listSpecializations = createServerFn({ method: "GET" }).handler(
+  async (): Promise<Specialization[]> => {
+    return [...mockDb.specializations]
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        icon: s.icon,
+        description: s.description,
+        display_order: s.displayOrder,
+      }));
+  },
+);
+
 export function useSpecializations() {
+  const fetchSpecializations = useServerFn(listSpecializations);
   return useQuery({
     queryKey: ["specializations"],
-    queryFn: async (): Promise<Specialization[]> => {
-      const { data, error } = await supabase
-        .from("specializations")
-        .select("id, name, icon, description, display_order")
-        .order("display_order", { ascending: true });
-      if (error) throw new Error(error.message);
-      return data;
-    },
+    queryFn: () => fetchSpecializations(),
     staleTime: 60_000,
   });
 }

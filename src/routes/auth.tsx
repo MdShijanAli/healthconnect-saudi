@@ -6,8 +6,8 @@ import { HeartPulse, Loader2, ShieldCheck, Stethoscope, User } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
 import { getPortalContext } from "@/lib/auth.functions";
+import { login, SESSION_STORAGE_KEY } from "@/lib/mock-auth";
 import { dashboardForRole } from "@/lib/portal-navigation";
 import type { PortalContext } from "@/lib/auth-schemas";
 
@@ -55,6 +55,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const signIn = useServerFn(login);
   const fetchPortal = useServerFn(getPortalContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,8 +67,8 @@ function AuthPage() {
     setError(null);
     setLoading(true);
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) throw new Error(signInError.message);
+      const { token } = await signIn({ data: { email, password } });
+      window.localStorage.setItem(SESSION_STORAGE_KEY, token);
       const portal = (await fetchPortal()) as PortalContext;
       navigate({ to: dashboardForRole(portal.role), replace: true });
     } catch (err) {

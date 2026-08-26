@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { fileToDataUrl } from "@/lib/mock-photo";
 import { usePortalContext } from "@/components/portal-shell";
 import { getMyPatientProfile, updatePatientProfile } from "@/lib/patient.functions";
 
@@ -67,14 +67,8 @@ function PatientProfilePage() {
       let profilePhotoPath: string | undefined;
       if (photo && portal) {
         setUploading(true);
-        const ext = photo.name.split(".").pop() ?? "jpg";
-        const path = `${portal.userId}/profile.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("profile-photos")
-          .upload(path, photo, { upsert: true });
+        profilePhotoPath = await fileToDataUrl(photo);
         setUploading(false);
-        if (uploadError) throw new Error(uploadError.message);
-        profilePhotoPath = path;
       }
       await save({
         data: { fullName, phone, dateOfBirth, gender, profilePhotoPath },

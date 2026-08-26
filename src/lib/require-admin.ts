@@ -1,18 +1,9 @@
-import type { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { mockDb } from "@/lib/mock-db";
 
-export async function isSuperAdmin(admin: typeof supabaseAdmin, userId: string): Promise<boolean> {
-  const { data, error } = await admin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "super_admin")
-    .maybeSingle();
-  return !error && !!data;
+export function isSuperAdmin(userId: string): boolean {
+  return mockDb.userRoles.some((r) => r.userId === userId && r.role === "super_admin");
 }
 
-export async function requireSuperAdmin(
-  admin: typeof supabaseAdmin,
-  userId: string,
-): Promise<void> {
-  if (!(await isSuperAdmin(admin, userId))) throw new Error("Forbidden");
+export function requireSuperAdmin(userId: string): void {
+  if (!isSuperAdmin(userId)) throw new Error("Forbidden");
 }

@@ -1,17 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
+import { mockDb } from "@/lib/mock-db";
 
-export const listPublicDoctors = createServerFn({ method: "GET" }).handler(async () => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin.rpc("list_public_doctors");
-  if (error) throw new Error(error.message);
+export function listPublicDoctorsData() {
+  return mockDb.doctorProfiles
+    .filter((d) => d.approvalStatus === "approved" && d.isActive)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map((doctor) => {
+      const profile = mockDb.profiles.find((p) => p.id === doctor.userId);
+      return {
+        user_id: doctor.userId,
+        full_name: profile?.fullName ?? "Unknown",
+        specialization: doctor.specialization,
+        years_experience: doctor.yearsExperience,
+        consultation_fee: doctor.consultationFee,
+        bio: doctor.bio,
+        profile_photo_path: doctor.profilePhotoPath,
+        photoUrl: doctor.profilePhotoPath,
+      };
+    });
+}
 
-  return Promise.all(
-    data.map(async (doctor) => {
-      if (!doctor.profile_photo_path) return { ...doctor, photoUrl: null };
-      const { data: signed } = await supabaseAdmin.storage
-        .from("profile-photos")
-        .createSignedUrl(doctor.profile_photo_path, 3600);
-      return { ...doctor, photoUrl: signed?.signedUrl ?? null };
-    }),
-  );
-});
+export const listPublicDoctors = createServerFn({ method: "GET" }).handler(async () =>
+  listPublicDoctorsData(),
+);
