@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireApprovedDoctor } from "@/lib/require-doctor";
+import { createNotification } from "@/lib/notifications";
 import type { supabaseAdmin as SupabaseAdminClient } from "@/integrations/supabase/client.server";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import {
@@ -203,13 +204,31 @@ export const acceptAppointment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await requireApprovedDoctor(supabaseAdmin, context.userId);
-    const { error } = await supabaseAdmin
+    const { data: updated, error } = await supabaseAdmin
       .from("appointments")
       .update({ status: "scheduled" })
       .eq("id", data.appointmentId)
       .eq("doctor_id", context.userId)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("patient_id, appointment_date, appointment_time")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+
+    if (updated) {
+      const { data: doctorProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("full_name")
+        .eq("id", context.userId)
+        .single();
+      await createNotification(supabaseAdmin, {
+        userId: updated.patient_id,
+        type: "appointment_accepted",
+        title: "Appointment confirmed",
+        body: `${doctorProfile?.full_name ?? "Your doctor"} confirmed your appointment on ${updated.appointment_date} at ${updated.appointment_time.slice(0, 5)}.`,
+        relatedAppointmentId: data.appointmentId,
+      });
+    }
+
     return { ok: true };
   });
 
@@ -249,12 +268,30 @@ export const cancelAppointment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await requireApprovedDoctor(supabaseAdmin, context.userId);
-    const { error } = await supabaseAdmin
+    const { data: updated, error } = await supabaseAdmin
       .from("appointments")
       .update({ status: "cancelled", cancel_reason: data.reason })
       .eq("id", data.appointmentId)
-      .eq("doctor_id", context.userId);
+      .eq("doctor_id", context.userId)
+      .select("patient_id")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+
+    if (updated) {
+      const { data: doctorProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("full_name")
+        .eq("id", context.userId)
+        .single();
+      await createNotification(supabaseAdmin, {
+        userId: updated.patient_id,
+        type: "appointment_cancelled",
+        title: "Appointment cancelled",
+        body: `${doctorProfile?.full_name ?? "Your doctor"} cancelled your appointment. Reason: ${data.reason}`,
+        relatedAppointmentId: data.appointmentId,
+      });
+    }
+
     return { ok: true };
   });
 
@@ -457,6 +494,19 @@ export const completeConsultation = createServerFn({ method: "POST" })
       .update({ status: "completed" })
       .eq("id", data.appointmentId);
     if (updateError) throw new Error(updateError.message);
+
+    const { data: doctorProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", context.userId)
+      .single();
+    await createNotification(supabaseAdmin, {
+      userId: appointment.patient_id,
+      type: "prescription_ready",
+      title: "Prescription ready",
+      body: `${doctorProfile?.full_name ?? "Your doctor"} completed your consultation and issued a prescription.`,
+      relatedAppointmentId: data.appointmentId,
+    });
 
     return { ok: true };
   });

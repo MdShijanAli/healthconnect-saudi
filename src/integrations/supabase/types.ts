@@ -284,12 +284,46 @@ export type Database = {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: string;
+          is_read: boolean;
+          related_appointment_id: string | null;
+          title: string;
+          type: string;
+          user_id: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          id?: string;
+          is_read?: boolean;
+          related_appointment_id?: string | null;
+          title: string;
+          type: string;
+          user_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: string;
+          is_read?: boolean;
+          related_appointment_id?: string | null;
+          title?: string;
+          type?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       patient_profiles: {
         Row: {
           created_at: string;
           date_of_birth: string;
           gender: string;
           is_blocked: boolean;
+          profile_photo_path: string | null;
           updated_at: string;
           user_id: string;
         };
@@ -298,6 +332,7 @@ export type Database = {
           date_of_birth: string;
           gender: string;
           is_blocked?: boolean;
+          profile_photo_path?: string | null;
           updated_at?: string;
           user_id: string;
         };
@@ -306,6 +341,7 @@ export type Database = {
           date_of_birth?: string;
           gender?: string;
           is_blocked?: boolean;
+          profile_photo_path?: string | null;
           updated_at?: string;
           user_id?: string;
         };
@@ -498,6 +534,7 @@ export type Database = {
         Returns: {
           doctor_status: Database["public"]["Enums"]["doctor_approval_status"];
           full_name: string;
+          patient_blocked: boolean | null;
           phone: string;
           role: Database["public"]["Enums"]["app_role"];
           user_id: string;
