@@ -27,6 +27,12 @@ import {
   Instagram,
   Globe,
   UserPlus,
+  Baby,
+  Sparkles,
+  Smile,
+  Bone,
+  Flower2,
+  Brain,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
