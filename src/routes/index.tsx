@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import {
   Activity,
@@ -41,6 +43,7 @@ import { content, type Lang } from "@/lib/landing-content";
 import { HealthcareFlowDialog } from "@/components/healthcare-flow-dialog";
 import { useSpecializations } from "@/lib/specializations";
 import { getSpecializationIcon } from "@/lib/icon-registry";
+import { listPublicDoctors } from "@/lib/public.functions";
 import heroConsult from "@/assets/hero-consult.jpg";
 import roleClinics from "@/assets/role-clinics.jpg";
 import roleDoctors from "@/assets/role-doctors.jpg";
@@ -130,6 +133,12 @@ function Index() {
   const t = content[lang];
   const isRtl = t.dir === "rtl";
   const { data: specializations } = useSpecializations();
+  const fetchPublicDoctors = useServerFn(listPublicDoctors);
+  const { data: publicDoctors } = useQuery({
+    queryKey: ["public-doctors"],
+    queryFn: () => fetchPublicDoctors() as Promise<Awaited<ReturnType<typeof listPublicDoctors>>>,
+    staleTime: 60_000,
+  });
 
   return (
     <div dir={t.dir} lang={lang} className="min-h-screen bg-background">
@@ -352,34 +361,53 @@ function Index() {
             title={t.doctors.title}
             subtitle={t.doctors.subtitle}
           />
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {t.doctors.items.map((doc, i) => (
-              <article
-                key={doc.name}
-                className="card-hover flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft"
-              >
-                <img
-                  src={doctorImages[i] ?? doctorImages[0]}
-                  alt={`${doc.name} — ${doc.specialty}`}
-                  loading="lazy"
-                  width={800}
-                  height={800}
-                  className="h-56 w-full object-cover"
-                />
-                <div className="flex flex-1 flex-col p-6">
-                  <h3 className="text-base font-bold tracking-tight">{doc.name}</h3>
-                  <p className="mt-1 text-sm font-medium text-primary">{doc.specialty}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{doc.experience}</p>
-                  <div className="mt-5 flex-1" />
-                  <HealthcareFlowDialog type="booking" lang={lang}>
-                    <Button variant="outline" className="w-full">
-                      {t.doctors.cta}
-                    </Button>
-                  </HealthcareFlowDialog>
-                </div>
-              </article>
-            ))}
-          </div>
+          {publicDoctors && publicDoctors.length > 0 ? (
+            <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {publicDoctors.map((doc, i) => (
+                <article
+                  key={doc.user_id}
+                  className="card-hover flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft"
+                >
+                  {doc.photoUrl ? (
+                    <img
+                      src={doc.photoUrl}
+                      alt={`${doc.full_name} — ${doc.specialization}`}
+                      loading="lazy"
+                      width={800}
+                      height={800}
+                      className="h-56 w-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={doctorImages[i % doctorImages.length]}
+                      alt={`${doc.full_name} — ${doc.specialization}`}
+                      loading="lazy"
+                      width={800}
+                      height={800}
+                      className="h-56 w-full object-cover"
+                    />
+                  )}
+                  <div className="flex flex-1 flex-col p-6">
+                    <h3 className="text-base font-bold tracking-tight">{doc.full_name}</h3>
+                    <p className="mt-1 text-sm font-medium text-primary">{doc.specialization}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {doc.years_experience} years experience
+                    </p>
+                    <div className="mt-5 flex-1" />
+                    <HealthcareFlowDialog type="booking" lang={lang}>
+                      <Button variant="outline" className="w-full">
+                        {t.doctors.cta}
+                      </Button>
+                    </HealthcareFlowDialog>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-14 text-center text-sm text-muted-foreground">
+              Our verified doctors will appear here as they join the platform.
+            </p>
+          )}
         </section>
 
         {/* Doctor registration */}

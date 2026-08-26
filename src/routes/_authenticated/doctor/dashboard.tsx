@@ -1,15 +1,34 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CalendarCheck, ClipboardList, Clock3, Pill, Users } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { CalendarClock, CalendarDays, ClipboardList, Stethoscope, Users } from "lucide-react";
+import { toast } from "sonner";
 
-import { PortalShell } from "@/components/portal-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { getDoctorDashboardStats, rescheduleAppointment } from "@/lib/doctor.functions";
 
 export const Route = createFileRoute("/_authenticated/doctor/dashboard")({
   head: () => ({
     meta: [
-      { title: "Doctor Portal — Sehaty Cloud" },
-      { name: "description", content: "Manage your patients, appointments and prescriptions in the Sehaty Cloud doctor portal." },
-      { property: "og:title", content: "Doctor Portal — Sehaty Cloud" },
-      { property: "og:description", content: "Your clinic day at a glance: appointments, patients and e-prescriptions." },
+      { title: "Doctor Dashboard — Sehaty Cloud" },
+      {
+        name: "description",
+        content: "Your patients, appointments and prescriptions at a glance.",
+      },
+      { property: "og:title", content: "Doctor Dashboard — Sehaty Cloud" },
+      { property: "og:description", content: "Your clinic day at a glance." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -17,43 +36,183 @@ export const Route = createFileRoute("/_authenticated/doctor/dashboard")({
   component: DoctorDashboard,
 });
 
+type DashboardStats = Awaited<ReturnType<typeof getDoctorDashboardStats>>;
+type TodayAppointment = DashboardStats["todayAppointmentsList"][number];
+
+const statusLabels: Record<string, string> = {
+  pending: "Awaiting acceptance",
+  scheduled: "Scheduled",
+};
+
 function DoctorDashboard() {
+  const navigate = useNavigate();
+  const fetchStats = useServerFn(getDoctorDashboardStats);
+  const reschedule = useServerFn(rescheduleAppointment);
+  const queryClient = useQueryClient();
+  const [rescheduleTarget, setRescheduleTarget] = useState<TodayAppointment | null>(null);
+  const [newDate, setNewDate] = useState("");
+  const [newTime, setNewTime] = useState("");
+
+  const { data, isPending, error } = useQuery({
+    queryKey: ["doctor-dashboard-stats"],
+    queryFn: () => fetchStats() as Promise<DashboardStats>,
+    staleTime: 30_000,
+  });
+
+  const rescheduleMutation = useMutation({
+    mutationFn: (input: { appointmentId: string; date: string; time: string }) =>
+      reschedule({ data: input }),
+    onSuccess: () => {
+      toast.success("Appointment rescheduled");
+      queryClient.invalidateQueries({ queryKey: ["doctor-dashboard-stats"] });
+      setRescheduleTarget(null);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  if (isPending) return <p className="text-sm text-muted-foreground">Loading dashboard…</p>;
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
+        <p className="text-sm font-medium text-destructive">{(error as Error).message}</p>
+      </div>
+    );
+  }
+
+  const stats = data!;
+  const statCards = [
+    { icon: CalendarDays, label: "Today's Appointments", value: stats.todaysAppointments },
+    { icon: ClipboardList, label: "Pending Prescriptions", value: stats.pendingPrescriptions },
+    { icon: Users, label: "Total Patients", value: stats.totalPatients },
+    { icon: CalendarClock, label: "This Week's Schedule", value: stats.thisWeekSchedule },
+  ];
+
+  function openReschedule(appointment: TodayAppointment) {
+    setRescheduleTarget(appointment);
+    setNewDate(new Date().toISOString().slice(0, 10));
+    setNewTime(appointment.time.slice(0, 5));
+  }
+
   return (
-    <PortalShell allow="doctor" title="Doctor portal" subtitle="Your patients, appointments and prescriptions.">
-      {(portal) =>
-        portal.doctorStatus !== "approved" ? (
-          <div className="mx-auto max-w-xl rounded-3xl border border-border/60 bg-card p-10 text-center shadow-sm">
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Clock3 className="h-7 w-7" />
-            </span>
-            <h2 className="mt-5 text-xl font-semibold">
-              {portal.doctorStatus === "rejected"
-                ? "Your application was not approved"
-                : "Your application is under review"}
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {portal.doctorStatus === "rejected"
-                ? "Please contact our provider team to review your credentials and reapply."
-                : "Our team is verifying your medical license and credentials. You'll get access to your portal as soon as a super admin approves your account."}
-            </p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Doctor dashboard</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">Your clinic day at a glance.</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm"
+          >
+            <card.icon className="h-5 w-5 text-primary" />
+            <p className="mt-4 text-2xl font-bold">{card.value.toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground">{card.label}</p>
           </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <h2 className="text-sm font-semibold">Today's appointments</h2>
+        {stats.todayAppointmentsList.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">No appointments scheduled for today.</p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { icon: CalendarCheck, label: "Today's appointments", value: "0" },
-              { icon: Users, label: "Active patients", value: "0" },
-              { icon: Pill, label: "Prescriptions issued", value: "0" },
-              { icon: ClipboardList, label: "Pending notes", value: "0" },
-            ].map((card) => (
-              <div key={card.label} className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
-                <card.icon className="h-5 w-5 text-primary" />
-                <p className="mt-4 text-2xl font-bold">{card.value}</p>
-                <p className="text-sm text-muted-foreground">{card.label}</p>
+          <div className="mt-4 grid gap-3">
+            {stats.todayAppointmentsList.map((appointment) => (
+              <div
+                key={appointment.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 p-4"
+              >
+                <div>
+                  <p className="text-sm font-semibold">{appointment.patientName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {appointment.time.slice(0, 5)} ·{" "}
+                    {statusLabels[appointment.status] ?? appointment.status}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" className="rounded-full">
+                    {statusLabels[appointment.status] ?? appointment.status}
+                  </Badge>
+                  <Button
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() =>
+                      navigate({
+                        to: "/doctor/consultation/$appointmentId",
+                        params: { appointmentId: appointment.id },
+                      })
+                    }
+                  >
+                    <Stethoscope className="mr-1.5 h-4 w-4" /> Start Consultation
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={() => openReschedule(appointment)}
+                  >
+                    Reschedule
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
-        )
-      }
-    </PortalShell>
+        )}
+      </div>
+
+      <Dialog open={!!rescheduleTarget} onOpenChange={(open) => !open && setRescheduleTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reschedule appointment</DialogTitle>
+            <DialogDescription>{rescheduleTarget?.patientName}</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="reschedule-date">Date</Label>
+              <Input
+                id="reschedule-date"
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="reschedule-time">Time</Label>
+              <Input
+                id="reschedule-time"
+                type="time"
+                value={newTime}
+                onChange={(e) => setNewTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => setRescheduleTarget(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="rounded-full"
+              disabled={rescheduleMutation.isPending || !newDate || !newTime}
+              onClick={() =>
+                rescheduleTarget &&
+                rescheduleMutation.mutate({
+                  appointmentId: rescheduleTarget.id,
+                  date: newDate,
+                  time: newTime,
+                })
+              }
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
