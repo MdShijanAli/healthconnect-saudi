@@ -14,7 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      doctor_registrations: {
+        Row: {
+          city: string
+          clinic_name: string | null
+          consultation_type: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          license_number: string
+          phone: string
+          specialty: string
+          status: string
+          updated_at: string
+          years_experience: number
+        }
+        Insert: {
+          city: string
+          clinic_name?: string | null
+          consultation_type: string
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          license_number: string
+          phone: string
+          specialty: string
+          status?: string
+          updated_at?: string
+          years_experience: number
+        }
+        Update: {
+          city?: string
+          clinic_name?: string | null
+          consultation_type?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          license_number?: string
+          phone?: string
+          specialty?: string
+          status?: string
+          updated_at?: string
+          years_experience?: number
+        }
+        Relationships: []
+      }
+      patient_bookings: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          created_at: string
+          doctor_preference: string | null
+          email: string
+          id: string
+          patient_name: string
+          phone: string
+          reason: string
+          specialty: string
+          status: string
+          updated_at: string
+          visit_type: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          created_at?: string
+          doctor_preference?: string | null
+          email: string
+          id?: string
+          patient_name: string
+          phone: string
+          reason: string
+          specialty: string
+          status?: string
+          updated_at?: string
+          visit_type: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          created_at?: string
+          doctor_preference?: string | null
+          email?: string
+          id?: string
+          patient_name?: string
+          phone?: string
+          reason?: string
+          specialty?: string
+          status?: string
+          updated_at?: string
+          visit_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
