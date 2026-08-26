@@ -439,9 +439,15 @@ function Index() {
                   {item.quote}
                 </blockquote>
                 <figcaption className="mt-6 flex min-w-0 items-center gap-3 border-t border-border pt-5">
-                  <span className="gradient-brand grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-bold text-primary-foreground">
-                    {item.name.replace("Dr. ", "").charAt(0)}
-                  </span>
+                  <img
+                    src={personImages[i] ?? personImages[0]}
+                    alt={item.name}
+                    loading="lazy"
+                    width={88}
+                    height={88}
+                    className="h-11 w-11 shrink-0 rounded-full object-cover"
+                  />
+
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-bold">{item.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">
