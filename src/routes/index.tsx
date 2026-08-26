@@ -297,6 +297,43 @@ function Index() {
           </div>
         </section>
 
+        {/* Meet our doctors */}
+        <section id="doctors" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+          <SectionHeading
+            eyebrow={t.doctors.eyebrow}
+            title={t.doctors.title}
+            subtitle={t.doctors.subtitle}
+          />
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {t.doctors.items.map((doc, i) => (
+              <article
+                key={doc.name}
+                className="card-hover flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft"
+              >
+                <img
+                  src={doctorImages[i] ?? doctorImages[0]}
+                  alt={`${doc.name} — ${doc.specialty}`}
+                  loading="lazy"
+                  width={800}
+                  height={800}
+                  className="h-56 w-full object-cover"
+                />
+                <div className="flex flex-1 flex-col p-6">
+                  <h3 className="text-base font-bold tracking-tight">{doc.name}</h3>
+                  <p className="mt-1 text-sm font-medium text-primary">{doc.specialty}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{doc.experience}</p>
+                  <div className="mt-5 flex-1" />
+                  <HealthcareFlowDialog type="booking" lang={lang}>
+                    <Button variant="outline" className="w-full">
+                      {t.doctors.cta}
+                    </Button>
+                  </HealthcareFlowDialog>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
         {/* Doctor registration */}
         <section id="providers" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
 
