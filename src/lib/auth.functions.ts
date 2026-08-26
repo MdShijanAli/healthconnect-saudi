@@ -1,125 +1,119 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireMockAuth } from "@/lib/mock-auth";
 import { completeRegistrationSchema, reviewDoctorSchema } from "@/lib/auth-schemas";
 import { requireSuperAdmin } from "@/lib/require-admin";
+import { isoNow, mockDb } from "@/lib/mock-db";
 
 export const completeRegistration = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .inputValidator((input) => completeRegistrationSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: existingRole } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .maybeSingle();
-
-    if (existingRole) throw new Error("This account is already registered.");
-
-    const { error: profileError } = await supabaseAdmin.from("profiles").insert({
-      id: context.userId,
-      full_name: data.fullName,
-      phone: data.phone,
-    });
-    if (profileError) throw new Error(profileError.message);
-
-    const { error: roleError } = await supabaseAdmin.from("user_roles").insert({
-      user_id: context.userId,
-      role: data.role,
-    });
-    if (roleError) {
-      await supabaseAdmin.from("profiles").delete().eq("id", context.userId);
-      throw new Error(roleError.message);
+    if (mockDb.userRoles.some((r) => r.userId === context.userId)) {
+      throw new Error("This account is already registered.");
     }
 
-    const detailsResult =
-      data.role === "patient"
-        ? await supabaseAdmin.from("patient_profiles").insert({
-            user_id: context.userId,
-            date_of_birth: data.dateOfBirth,
-            gender: data.gender,
-          })
-        : await supabaseAdmin.from("doctor_profiles").insert({
-            user_id: context.userId,
-            specialization: data.specialization,
-            medical_license_number: data.medicalLicenseNumber,
-            years_experience: data.yearsExperience,
-            consultation_fee: data.consultationFee,
-            bio: data.bio,
-            profile_photo_path: data.profilePhotoPath,
-          });
+    mockDb.profiles.push({
+      id: context.userId,
+      fullName: data.fullName,
+      phone: data.phone,
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
+    });
+    mockDb.userRoles.push({ userId: context.userId, role: data.role });
 
-    if (detailsResult.error) {
-      await supabaseAdmin.from("user_roles").delete().eq("user_id", context.userId);
-      await supabaseAdmin.from("profiles").delete().eq("id", context.userId);
-      throw new Error(detailsResult.error.message);
+    if (data.role === "patient") {
+      mockDb.patientProfiles.push({
+        userId: context.userId,
+        dateOfBirth: data.dateOfBirth,
+        gender: data.gender,
+        profilePhotoPath: null,
+        isBlocked: false,
+        createdAt: isoNow(),
+        updatedAt: isoNow(),
+      });
+    } else {
+      mockDb.doctorProfiles.push({
+        userId: context.userId,
+        specialization: data.specialization,
+        medicalLicenseNumber: data.medicalLicenseNumber,
+        yearsExperience: data.yearsExperience,
+        consultationFee: data.consultationFee,
+        bio: data.bio,
+        profilePhotoPath: data.profilePhotoPath,
+        approvalStatus: "pending_approval",
+        reviewedBy: null,
+        reviewedAt: null,
+        isActive: true,
+        reviewNotes: null,
+        createdAt: isoNow(),
+        updatedAt: isoNow(),
+      });
     }
 
     return { role: data.role };
   });
 
 export const getPortalContext = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.rpc("get_my_portal_context");
-    if (error) throw new Error(error.message);
-    const portal = data[0];
-    if (!portal) throw new Error("Your account setup is incomplete.");
+    const profile = mockDb.profiles.find((p) => p.id === context.userId);
+    const role = mockDb.userRoles.find((r) => r.userId === context.userId);
+    if (!profile || !role) throw new Error("Your account setup is incomplete.");
+
+    const doctor = mockDb.doctorProfiles.find((d) => d.userId === context.userId);
+    const patient = mockDb.patientProfiles.find((p) => p.userId === context.userId);
+
     return {
-      userId: portal.user_id,
-      fullName: portal.full_name,
-      phone: portal.phone,
-      role: portal.role,
-      doctorStatus: portal.doctor_status,
-      patientBlocked: portal.patient_blocked ?? false,
+      userId: profile.id,
+      fullName: profile.fullName,
+      phone: profile.phone,
+      role: role.role,
+      doctorStatus: doctor?.approvalStatus ?? null,
+      patientBlocked: patient?.isBlocked ?? false,
     };
   });
 
 export const listPendingDoctors = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireSuperAdmin(supabaseAdmin, context.userId);
+    requireSuperAdmin(context.userId);
 
-    const { data: doctors, error } = await supabaseAdmin
-      .from("doctor_profiles")
-      .select(
-        "user_id, specialization, medical_license_number, years_experience, consultation_fee, bio, profile_photo_path, approval_status, created_at",
-      )
-      .eq("approval_status", "pending_approval")
-      .order("created_at", { ascending: true });
-    if (error) throw new Error(error.message);
-
-    const ids = doctors.map((doctor) => doctor.user_id);
-    const { data: profiles, error: profileError } = ids.length
-      ? await supabaseAdmin.from("profiles").select("id, full_name, phone").in("id", ids)
-      : { data: [], error: null };
-    if (profileError) throw new Error(profileError.message);
-    const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
-
-    return doctors.map((doctor) => ({
-      ...doctor,
-      profile: profileById.get(doctor.user_id) ?? null,
-    }));
+    return mockDb.doctorProfiles
+      .filter((d) => d.approvalStatus === "pending_approval")
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .map((doctor) => {
+        const profile = mockDb.profiles.find((p) => p.id === doctor.userId);
+        return {
+          user_id: doctor.userId,
+          specialization: doctor.specialization,
+          medical_license_number: doctor.medicalLicenseNumber,
+          years_experience: doctor.yearsExperience,
+          consultation_fee: doctor.consultationFee,
+          bio: doctor.bio,
+          profile_photo_path: doctor.profilePhotoPath,
+          approval_status: doctor.approvalStatus,
+          created_at: doctor.createdAt,
+          profile: profile ? { id: profile.id, full_name: profile.fullName, phone: profile.phone } : null,
+        };
+      });
   });
 
 export const reviewDoctor = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .inputValidator((input) => reviewDoctorSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireSuperAdmin(supabaseAdmin, context.userId);
+    requireSuperAdmin(context.userId);
 
-    const { error } = await supabaseAdmin
-      .from("doctor_profiles")
-      .update({
-        approval_status: data.status,
-        review_notes: data.reason ?? null,
-        reviewed_by: context.userId,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("user_id", data.doctorId)
-      .eq("approval_status", "pending_approval");
-    if (error) throw new Error(error.message);
+    const doctor = mockDb.doctorProfiles.find(
+      (d) => d.userId === data.doctorId && d.approvalStatus === "pending_approval",
+    );
+    if (!doctor) throw new Error("This application is no longer pending review.");
+
+    doctor.approvalStatus = data.status;
+    doctor.reviewNotes = data.reason ?? null;
+    doctor.reviewedBy = context.userId;
+    doctor.reviewedAt = isoNow();
+    doctor.updatedAt = isoNow();
+
     return { ok: true };
   });

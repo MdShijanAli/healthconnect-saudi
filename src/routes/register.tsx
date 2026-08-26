@@ -14,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
 import { completeRegistration } from "@/lib/auth.functions";
+import { signUp, SESSION_STORAGE_KEY } from "@/lib/mock-auth";
+import { fileToDataUrl } from "@/lib/mock-photo";
 import { dashboardForRole } from "@/lib/portal-navigation";
 import { useSpecializations } from "@/lib/specializations";
 
@@ -45,6 +46,7 @@ type Role = "patient" | "doctor";
 
 function RegisterPage() {
   const navigate = useNavigate();
+  const doSignUp = useServerFn(signUp);
   const submitRegistration = useServerFn(completeRegistration);
   const [role, setRole] = useState<Role>("patient");
   const [loading, setLoading] = useState(false);
@@ -61,26 +63,12 @@ function RegisterPage() {
     const password = String(form.get("password"));
 
     try {
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin },
-      });
-      if (signUpError) throw new Error(signUpError.message);
-      if (!signUpData.session) {
-        throw new Error("Check your email to confirm your account, then sign in.");
-      }
-      const userId = signUpData.user!.id;
+      const { token } = await doSignUp({ data: { email, password } });
+      window.localStorage.setItem(SESSION_STORAGE_KEY, token);
 
       let profilePhotoPath: string | null = null;
       if (role === "doctor" && photo) {
-        const ext = photo.name.split(".").pop() ?? "jpg";
-        const path = `${userId}/profile.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("profile-photos")
-          .upload(path, photo, { upsert: true });
-        if (uploadError) throw new Error(uploadError.message);
-        profilePhotoPath = path;
+        profilePhotoPath = await fileToDataUrl(photo);
       }
 
       const payload =

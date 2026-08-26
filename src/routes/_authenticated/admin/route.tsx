@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect } from "react";
 import {
   BarChart3,
@@ -40,7 +41,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
+import { logout, SESSION_STORAGE_KEY } from "@/lib/mock-auth";
 import { dashboardForRole } from "@/lib/portal-navigation";
 import { usePortalContext } from "@/components/portal-shell";
 
@@ -79,10 +80,13 @@ function AdminLayout() {
     }
   }, [portal, navigate]);
 
+  const doLogout = useServerFn(logout);
+
   async function handleSignOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
+    await doLogout().catch(() => undefined);
+    window.localStorage.removeItem(SESSION_STORAGE_KEY);
     navigate({ to: "/auth", replace: true });
   }
 

@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireMockAuth } from "@/lib/mock-auth";
 import { requireActivePatient } from "@/lib/require-patient";
 import { createNotification } from "@/lib/notifications";
-import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
+import { genId, isoNow, mockDb } from "@/lib/mock-db";
+import { listPublicDoctorsData } from "@/lib/public.functions";
 import {
   bookAppointmentSchema,
   cancelPatientAppointmentSchema,
@@ -44,64 +45,52 @@ function isWithinCutoff(date: string, time: string, cutoffHours: number): boolea
 }
 
 export const getPatientDashboard = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
     const today = new Date().toISOString().slice(0, 10);
     const nowTime = new Date().toTimeString().slice(0, 5);
 
-    const { data: appointments, error } = await supabaseAdmin
-      .from("appointments")
-      .select("id, doctor_id, appointment_date, appointment_time, status, reason")
-      .eq("patient_id", context.userId)
-      .in("status", ["pending", "scheduled"])
-      .order("appointment_date", { ascending: true })
-      .order("appointment_time", { ascending: true });
-    if (error) throw new Error(error.message);
+    const appointments = mockDb.appointments
+      .filter((a) => a.patientId === context.userId && (a.status === "pending" || a.status === "scheduled"))
+      .sort(
+        (a, b) =>
+          a.appointmentDate.localeCompare(b.appointmentDate) ||
+          a.appointmentTime.localeCompare(b.appointmentTime),
+      );
 
     const upcoming = appointments.find(
       (a) =>
-        a.appointment_date > today ||
-        (a.appointment_date === today && a.appointment_time.slice(0, 5) >= nowTime),
+        a.appointmentDate > today ||
+        (a.appointmentDate === today && a.appointmentTime.slice(0, 5) >= nowTime),
     );
 
     if (!upcoming) return { upcomingAppointment: null };
 
-    const [{ data: doctorProfile }, { data: profile }] = await Promise.all([
-      supabaseAdmin
-        .from("doctor_profiles")
-        .select("specialization")
-        .eq("user_id", upcoming.doctor_id)
-        .single(),
-      supabaseAdmin.from("profiles").select("full_name").eq("id", upcoming.doctor_id).single(),
-    ]);
+    const doctorProfile = mockDb.doctorProfiles.find((d) => d.userId === upcoming.doctorId);
+    const profile = mockDb.profiles.find((p) => p.id === upcoming.doctorId);
 
     return {
       upcomingAppointment: {
         id: upcoming.id,
-        date: upcoming.appointment_date,
-        time: upcoming.appointment_time,
+        date: upcoming.appointmentDate,
+        time: upcoming.appointmentTime,
         status: upcoming.status,
         reason: upcoming.reason,
-        doctorName: profile?.full_name ?? "Unknown",
+        doctorName: profile?.fullName ?? "Unknown",
         specialization: doctorProfile?.specialization ?? "",
       },
     };
   });
 
 export const searchDoctorsForPatient = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .inputValidator((input) => searchDoctorsSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
-    const { data: doctors, error } = await supabaseAdmin.rpc("list_public_doctors");
-    if (error) throw new Error(error.message);
-
-    let filtered = doctors;
+    let filtered = listPublicDoctorsData();
     if (data.specialization) {
       filtered = filtered.filter((d) => d.specialization === data.specialization);
     }
@@ -111,41 +100,26 @@ export const searchDoctorsForPatient = createServerFn({ method: "GET" })
     }
 
     if (data.availability && filtered.length > 0) {
-      const ids = filtered.map((d) => d.user_id);
+      const ids = new Set(filtered.map((d) => d.user_id));
       const todayStr = new Date().toISOString().slice(0, 10);
       const weekEnd = new Date();
       weekEnd.setDate(weekEnd.getDate() + 6);
       const weekEndStr = weekEnd.toISOString().slice(0, 10);
       const rangeEnd = data.availability === "today" ? todayStr : weekEndStr;
 
-      const [{ data: availabilities, error: availError }, { data: leaves, error: leaveError }] =
-        await Promise.all([
-          supabaseAdmin
-            .from("doctor_availability")
-            .select("doctor_id, day_of_week")
-            .in("doctor_id", ids)
-            .eq("is_enabled", true),
-          supabaseAdmin
-            .from("doctor_unavailable_dates")
-            .select("doctor_id, date")
-            .in("doctor_id", ids)
-            .gte("date", todayStr)
-            .lte("date", rangeEnd),
-        ]);
-      if (availError) throw new Error(availError.message);
-      if (leaveError) throw new Error(leaveError.message);
-
       const enabledDaysByDoctor = new Map<string, Set<number>>();
-      for (const a of availabilities ?? []) {
-        const set = enabledDaysByDoctor.get(a.doctor_id) ?? new Set<number>();
-        set.add(a.day_of_week);
-        enabledDaysByDoctor.set(a.doctor_id, set);
+      for (const a of mockDb.doctorAvailability) {
+        if (!ids.has(a.doctorId) || !a.isEnabled) continue;
+        const set = enabledDaysByDoctor.get(a.doctorId) ?? new Set<number>();
+        set.add(a.dayOfWeek);
+        enabledDaysByDoctor.set(a.doctorId, set);
       }
       const leaveDatesByDoctor = new Map<string, Set<string>>();
-      for (const l of leaves ?? []) {
-        const set = leaveDatesByDoctor.get(l.doctor_id) ?? new Set<string>();
+      for (const l of mockDb.doctorUnavailableDates) {
+        if (!ids.has(l.doctorId) || l.date < todayStr || l.date > rangeEnd) continue;
+        const set = leaveDatesByDoctor.get(l.doctorId) ?? new Set<string>();
         set.add(l.date);
-        leaveDatesByDoctor.set(l.doctor_id, set);
+        leaveDatesByDoctor.set(l.doctorId, set);
       }
 
       const todayDow = new Date().getDay();
@@ -166,486 +140,318 @@ export const searchDoctorsForPatient = createServerFn({ method: "GET" })
       });
     }
 
-    return Promise.all(
-      filtered.map(async (doctor) => {
-        if (!doctor.profile_photo_path) return { ...doctor, photoUrl: null };
-        const { data: signed } = await supabaseAdmin.storage
-          .from("profile-photos")
-          .createSignedUrl(doctor.profile_photo_path, 3600);
-        return { ...doctor, photoUrl: signed?.signedUrl ?? null };
-      }),
-    );
+    return filtered;
   });
 
 export const getDoctorProfileForPatient = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .inputValidator((input) => getDoctorProfileSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
-    const { data: doctor, error } = await supabaseAdmin
-      .from("doctor_profiles")
-      .select(
-        "user_id, specialization, years_experience, consultation_fee, bio, profile_photo_path, approval_status, is_active",
-      )
-      .eq("user_id", data.doctorId)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!doctor || doctor.approval_status !== "approved" || !doctor.is_active) {
+    const doctor = mockDb.doctorProfiles.find((d) => d.userId === data.doctorId);
+    if (!doctor || doctor.approvalStatus !== "approved" || !doctor.isActive) {
       throw new Error("This doctor is not available for booking.");
     }
-
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("full_name")
-      .eq("id", data.doctorId)
-      .single();
-    if (profileError) throw new Error(profileError.message);
-
-    let photoUrl: string | null = null;
-    if (doctor.profile_photo_path) {
-      const { data: signed } = await supabaseAdmin.storage
-        .from("profile-photos")
-        .createSignedUrl(doctor.profile_photo_path, 3600);
-      photoUrl = signed?.signedUrl ?? null;
-    }
+    const profile = mockDb.profiles.find((p) => p.id === data.doctorId);
+    if (!profile) throw new Error("Doctor not found");
 
     return {
-      userId: doctor.user_id,
-      fullName: profile.full_name,
+      userId: doctor.userId,
+      fullName: profile.fullName,
       specialization: doctor.specialization,
-      yearsExperience: doctor.years_experience,
-      consultationFee: doctor.consultation_fee,
+      yearsExperience: doctor.yearsExperience,
+      consultationFee: doctor.consultationFee,
       bio: doctor.bio,
-      photoUrl,
+      photoUrl: doctor.profilePhotoPath,
     };
   });
 
 export const getDoctorAvailabilityForBooking = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .inputValidator((input) => getDoctorAvailabilitySchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
-    const [{ data: days, error }, { data: leaves, error: leaveError }] = await Promise.all([
-      supabaseAdmin
-        .from("doctor_availability")
-        .select("day_of_week, is_enabled")
-        .eq("doctor_id", data.doctorId),
-      supabaseAdmin
-        .from("doctor_unavailable_dates")
-        .select("date")
-        .eq("doctor_id", data.doctorId)
-        .gte("date", new Date().toISOString().slice(0, 10)),
-    ]);
-    if (error) throw new Error(error.message);
-    if (leaveError) throw new Error(leaveError.message);
-
+    const today = new Date().toISOString().slice(0, 10);
     return {
-      enabledDays: (days ?? []).filter((d) => d.is_enabled).map((d) => d.day_of_week),
-      unavailableDates: (leaves ?? []).map((l) => l.date),
+      enabledDays: mockDb.doctorAvailability
+        .filter((d) => d.doctorId === data.doctorId && d.isEnabled)
+        .map((d) => d.dayOfWeek),
+      unavailableDates: mockDb.doctorUnavailableDates
+        .filter((d) => d.doctorId === data.doctorId && d.date >= today)
+        .map((d) => d.date),
     };
   });
 
 export const getAvailableSlots = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .inputValidator((input) => getAvailableSlotsSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
     const dayOfWeek = new Date(`${data.date}T00:00:00`).getDay();
+    const availability = mockDb.doctorAvailability.find(
+      (d) => d.doctorId === data.doctorId && d.dayOfWeek === dayOfWeek,
+    );
+    const onLeave = mockDb.doctorUnavailableDates.some(
+      (d) => d.doctorId === data.doctorId && d.date === data.date,
+    );
+    if (!availability || !availability.isEnabled || onLeave) return [];
 
-    const [
-      { data: availability, error },
-      { data: leave, error: leaveError },
-      { data: booked, error: bookedError },
-    ] = await Promise.all([
-      supabaseAdmin
-        .from("doctor_availability")
-        .select("is_enabled, start_time, end_time")
-        .eq("doctor_id", data.doctorId)
-        .eq("day_of_week", dayOfWeek)
-        .maybeSingle(),
-      supabaseAdmin
-        .from("doctor_unavailable_dates")
-        .select("id")
-        .eq("doctor_id", data.doctorId)
-        .eq("date", data.date)
-        .maybeSingle(),
-      supabaseAdmin
-        .from("appointments")
-        .select("appointment_time")
-        .eq("doctor_id", data.doctorId)
-        .eq("appointment_date", data.date)
-        .in("status", ["pending", "scheduled"]),
-    ]);
-    if (error) throw new Error(error.message);
-    if (leaveError) throw new Error(leaveError.message);
-    if (bookedError) throw new Error(bookedError.message);
-
-    if (!availability || !availability.is_enabled || leave) return [];
-
-    const bookedTimes = new Set((booked ?? []).map((b) => b.appointment_time.slice(0, 5)));
+    const bookedTimes = new Set(
+      mockDb.appointments
+        .filter(
+          (a) =>
+            a.doctorId === data.doctorId &&
+            a.appointmentDate === data.date &&
+            (a.status === "pending" || a.status === "scheduled"),
+        )
+        .map((a) => a.appointmentTime.slice(0, 5)),
+    );
     const isToday = data.date === new Date().toISOString().slice(0, 10);
     const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
 
-    return generateSlots(availability.start_time.slice(0, 5), availability.end_time.slice(0, 5))
+    return generateSlots(availability.startTime.slice(0, 5), availability.endTime.slice(0, 5))
       .filter((slot) => !bookedTimes.has(slot))
       .filter((slot) => !isToday || timeToMinutes(slot) > nowMinutes);
   });
 
 export const bookAppointment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .inputValidator((input) => bookAppointmentSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
-    const { data: doctor, error: doctorError } = await supabaseAdmin
-      .from("doctor_profiles")
-      .select("consultation_fee, approval_status, is_active")
-      .eq("user_id", data.doctorId)
-      .maybeSingle();
-    if (doctorError) throw new Error(doctorError.message);
-    if (!doctor || doctor.approval_status !== "approved" || !doctor.is_active) {
+    const doctor = mockDb.doctorProfiles.find((d) => d.userId === data.doctorId);
+    if (!doctor || doctor.approvalStatus !== "approved" || !doctor.isActive) {
       throw new Error("This doctor is not available for booking.");
     }
 
-    const { data: existing, error: existingError } = await supabaseAdmin
-      .from("appointments")
-      .select("id")
-      .eq("doctor_id", data.doctorId)
-      .eq("appointment_date", data.date)
-      .eq("appointment_time", data.time)
-      .in("status", ["pending", "scheduled"])
-      .maybeSingle();
-    if (existingError) throw new Error(existingError.message);
+    const existing = mockDb.appointments.find(
+      (a) =>
+        a.doctorId === data.doctorId &&
+        a.appointmentDate === data.date &&
+        a.appointmentTime === data.time &&
+        (a.status === "pending" || a.status === "scheduled"),
+    );
     if (existing) throw new Error("That time slot was just booked. Please pick another.");
 
-    const { data: appointment, error } = await supabaseAdmin
-      .from("appointments")
-      .insert({
-        doctor_id: data.doctorId,
-        patient_id: context.userId,
-        appointment_date: data.date,
-        appointment_time: data.time,
-        status: "pending",
-        fee: doctor.consultation_fee,
-        reason: data.reason,
-      })
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
+    const appointmentId = genId();
+    mockDb.appointments.push({
+      id: appointmentId,
+      doctorId: data.doctorId,
+      patientId: context.userId,
+      appointmentDate: data.date,
+      appointmentTime: data.time,
+      status: "pending",
+      fee: doctor.consultationFee,
+      reason: data.reason,
+      cancelReason: null,
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
+    });
 
-    const { data: doctorProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("full_name")
-      .eq("id", data.doctorId)
-      .single();
-    await createNotification(supabaseAdmin, {
+    const doctorName = mockDb.profiles.find((p) => p.id === data.doctorId)?.fullName ?? "your doctor";
+    createNotification({
       userId: context.userId,
       type: "booking_confirmation",
       title: "Booking request sent",
-      body: `Your appointment request with ${doctorProfile?.full_name ?? "your doctor"} on ${data.date} at ${data.time} has been sent and is awaiting confirmation.`,
-      relatedAppointmentId: appointment.id,
+      body: `Your appointment request with ${doctorName} on ${data.date} at ${data.time} has been sent and is awaiting confirmation.`,
+      relatedAppointmentId: appointmentId,
     });
 
-    return { appointmentId: appointment.id };
+    return { appointmentId };
   });
 
 export const listPatientAppointments = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
-    const { data: appointments, error } = await supabaseAdmin
-      .from("appointments")
-      .select(
-        "id, doctor_id, appointment_date, appointment_time, status, reason, cancel_reason, fee",
-      )
-      .eq("patient_id", context.userId)
-      .order("appointment_date", { ascending: false })
-      .order("appointment_time", { ascending: false });
-    if (error) throw new Error(error.message);
+    const appointments = mockDb.appointments
+      .filter((a) => a.patientId === context.userId)
+      .sort(
+        (a, b) =>
+          b.appointmentDate.localeCompare(a.appointmentDate) ||
+          b.appointmentTime.localeCompare(a.appointmentTime),
+      );
 
-    const ids = [...new Set(appointments.map((a) => a.doctor_id))];
-    const [{ data: profiles, error: profileError }, { data: doctorProfiles, error: doctorError }] =
-      await Promise.all([
-        ids.length
-          ? supabaseAdmin.from("profiles").select("id, full_name").in("id", ids)
-          : Promise.resolve({ data: [], error: null }),
-        ids.length
-          ? supabaseAdmin
-              .from("doctor_profiles")
-              .select("user_id, specialization")
-              .in("user_id", ids)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-    if (profileError) throw new Error(profileError.message);
-    if (doctorError) throw new Error(doctorError.message);
-
-    const nameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
-    const specializationById = new Map(
-      (doctorProfiles ?? []).map((d) => [d.user_id, d.specialization]),
-    );
-
-    return appointments.map((a) => ({
-      ...a,
-      doctorName: nameById.get(a.doctor_id) ?? "Unknown",
-      specialization: specializationById.get(a.doctor_id) ?? "",
-    }));
+    return appointments.map((a) => {
+      const doctorProfile = mockDb.doctorProfiles.find((d) => d.userId === a.doctorId);
+      return {
+        id: a.id,
+        doctor_id: a.doctorId,
+        appointment_date: a.appointmentDate,
+        appointment_time: a.appointmentTime,
+        status: a.status,
+        reason: a.reason,
+        cancel_reason: a.cancelReason,
+        fee: a.fee,
+        doctorName: mockDb.profiles.find((p) => p.id === a.doctorId)?.fullName ?? "Unknown",
+        specialization: doctorProfile?.specialization ?? "",
+      };
+    });
   });
 
 export const cancelPatientAppointment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .inputValidator((input) => cancelPatientAppointmentSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
-    const { data: appointment, error } = await supabaseAdmin
-      .from("appointments")
-      .select("id, appointment_date, appointment_time, status")
-      .eq("id", data.appointmentId)
-      .eq("patient_id", context.userId)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!appointment) throw new Error("Appointment not found");
-    if (appointment.status !== "pending" && appointment.status !== "scheduled") {
+    const appt = mockDb.appointments.find((a) => a.id === data.appointmentId && a.patientId === context.userId);
+    if (!appt) throw new Error("Appointment not found");
+    if (appt.status !== "pending" && appt.status !== "scheduled") {
       throw new Error("This appointment can no longer be cancelled.");
     }
-    if (isWithinCutoff(appointment.appointment_date, appointment.appointment_time.slice(0, 5), 2)) {
+    if (isWithinCutoff(appt.appointmentDate, appt.appointmentTime.slice(0, 5), 2)) {
       throw new Error("Appointments can't be cancelled within 2 hours of the scheduled time.");
     }
 
-    const { error: updateError } = await supabaseAdmin
-      .from("appointments")
-      .update({ status: "cancelled", cancel_reason: data.reason ?? null })
-      .eq("id", data.appointmentId);
-    if (updateError) throw new Error(updateError.message);
-
+    appt.status = "cancelled";
+    appt.cancelReason = data.reason ?? null;
+    appt.updatedAt = isoNow();
     return { ok: true };
   });
 
 export const reschedulePatientAppointment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .inputValidator((input) => reschedulePatientAppointmentSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
-    const { data: appointment, error } = await supabaseAdmin
-      .from("appointments")
-      .select("id, doctor_id, appointment_date, appointment_time, status")
-      .eq("id", data.appointmentId)
-      .eq("patient_id", context.userId)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!appointment) throw new Error("Appointment not found");
-    if (appointment.status !== "pending" && appointment.status !== "scheduled") {
+    const appt = mockDb.appointments.find((a) => a.id === data.appointmentId && a.patientId === context.userId);
+    if (!appt) throw new Error("Appointment not found");
+    if (appt.status !== "pending" && appt.status !== "scheduled") {
       throw new Error("This appointment can no longer be rescheduled.");
     }
-    if (isWithinCutoff(appointment.appointment_date, appointment.appointment_time.slice(0, 5), 2)) {
+    if (isWithinCutoff(appt.appointmentDate, appt.appointmentTime.slice(0, 5), 2)) {
       throw new Error("Appointments can't be rescheduled within 2 hours of the scheduled time.");
     }
 
-    const { data: existing, error: existingError } = await supabaseAdmin
-      .from("appointments")
-      .select("id")
-      .eq("doctor_id", appointment.doctor_id)
-      .eq("appointment_date", data.date)
-      .eq("appointment_time", data.time)
-      .in("status", ["pending", "scheduled"])
-      .neq("id", data.appointmentId)
-      .maybeSingle();
-    if (existingError) throw new Error(existingError.message);
+    const existing = mockDb.appointments.find(
+      (a) =>
+        a.doctorId === appt.doctorId &&
+        a.appointmentDate === data.date &&
+        a.appointmentTime === data.time &&
+        (a.status === "pending" || a.status === "scheduled") &&
+        a.id !== data.appointmentId,
+    );
     if (existing) throw new Error("That time slot is already booked. Please pick another.");
 
-    const { error: updateError } = await supabaseAdmin
-      .from("appointments")
-      .update({ appointment_date: data.date, appointment_time: data.time })
-      .eq("id", data.appointmentId);
-    if (updateError) throw new Error(updateError.message);
-
+    appt.appointmentDate = data.date;
+    appt.appointmentTime = data.time;
+    appt.updatedAt = isoNow();
     return { ok: true };
   });
 
 export const listPatientPrescriptions = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
-    const { data: prescriptions, error } = await supabaseAdmin
-      .from("prescriptions")
-      .select("id, doctor_id, diagnosis_notes, advice_notes, created_at")
-      .eq("patient_id", context.userId)
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    const prescriptions = mockDb.prescriptions
+      .filter((p) => p.patientId === context.userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
-    type PrescriptionItemRow = Pick<
-      Tables<"prescription_items">,
-      | "id"
-      | "prescription_id"
-      | "medicine_name"
-      | "dosage"
-      | "frequency"
-      | "duration"
-      | "instructions"
-    >;
-
-    const prescriptionIds = prescriptions.map((p) => p.id);
-    const {
-      data: items,
-      error: itemsError,
-    }: { data: PrescriptionItemRow[] | null; error: { message: string } | null } =
-      prescriptionIds.length
-        ? await supabaseAdmin
-            .from("prescription_items")
-            .select("id, prescription_id, medicine_name, dosage, frequency, duration, instructions")
-            .in("prescription_id", prescriptionIds)
-        : { data: [], error: null };
-    if (itemsError) throw new Error(itemsError.message);
-
-    const itemsByPrescription = new Map<string, PrescriptionItemRow[]>();
-    for (const item of items ?? []) {
-      const list = itemsByPrescription.get(item.prescription_id) ?? [];
-      list.push(item);
-      itemsByPrescription.set(item.prescription_id, list);
-    }
-
-    const doctorIds = [...new Set(prescriptions.map((p) => p.doctor_id))];
-    const [{ data: profiles, error: profileError }, { data: doctorProfiles, error: doctorError }] =
-      await Promise.all([
-        doctorIds.length
-          ? supabaseAdmin.from("profiles").select("id, full_name").in("id", doctorIds)
-          : Promise.resolve({ data: [], error: null }),
-        doctorIds.length
-          ? supabaseAdmin
-              .from("doctor_profiles")
-              .select("user_id, specialization")
-              .in("user_id", doctorIds)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-    if (profileError) throw new Error(profileError.message);
-    if (doctorError) throw new Error(doctorError.message);
-    const nameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
-    const specializationById = new Map(
-      (doctorProfiles ?? []).map((d) => [d.user_id, d.specialization]),
-    );
-
-    return prescriptions.map((p) => ({
-      ...p,
-      doctorName: nameById.get(p.doctor_id) ?? "Unknown",
-      specialization: specializationById.get(p.doctor_id) ?? "",
-      items: itemsByPrescription.get(p.id) ?? [],
-    }));
+    return prescriptions.map((p) => {
+      const doctorProfile = mockDb.doctorProfiles.find((d) => d.userId === p.doctorId);
+      return {
+        id: p.id,
+        doctor_id: p.doctorId,
+        diagnosis_notes: p.diagnosisNotes,
+        advice_notes: p.adviceNotes,
+        created_at: p.createdAt,
+        doctorName: mockDb.profiles.find((prof) => prof.id === p.doctorId)?.fullName ?? "Unknown",
+        specialization: doctorProfile?.specialization ?? "",
+        items: mockDb.prescriptionItems
+          .filter((i) => i.prescriptionId === p.id)
+          .map((i) => ({
+            id: i.id,
+            prescription_id: i.prescriptionId,
+            medicine_name: i.medicineName,
+            dosage: i.dosage,
+            frequency: i.frequency,
+            duration: i.duration,
+            instructions: i.instructions,
+          })),
+      };
+    });
   });
 
 export const listNotifications = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
-    const { data, error } = await supabaseAdmin
-      .from("notifications")
-      .select("id, type, title, body, is_read, created_at, related_appointment_id")
-      .eq("user_id", context.userId)
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data;
+    requireActivePatient(context.userId);
+    return mockDb.notifications
+      .filter((n) => n.userId === context.userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((n) => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        body: n.body,
+        is_read: n.isRead,
+        created_at: n.createdAt,
+        related_appointment_id: n.relatedAppointmentId,
+      }));
   });
 
 export const markNotificationRead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .inputValidator((input) => markNotificationReadSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from("notifications")
-      .update({ is_read: true })
-      .eq("id", data.id)
-      .eq("user_id", context.userId);
-    if (error) throw new Error(error.message);
+    const notification = mockDb.notifications.find((n) => n.id === data.id && n.userId === context.userId);
+    if (notification) notification.isRead = true;
     return { ok: true };
   });
 
 export const markAllNotificationsRead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from("notifications")
-      .update({ is_read: true })
-      .eq("user_id", context.userId)
-      .eq("is_read", false);
-    if (error) throw new Error(error.message);
+    for (const n of mockDb.notifications) {
+      if (n.userId === context.userId) n.isRead = true;
+    }
     return { ok: true };
   });
 
 export const getMyPatientProfile = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
-    const [{ data: profile, error }, { data: patientProfile, error: patientError }] =
-      await Promise.all([
-        supabaseAdmin.from("profiles").select("full_name, phone").eq("id", context.userId).single(),
-        supabaseAdmin
-          .from("patient_profiles")
-          .select("date_of_birth, gender, profile_photo_path")
-          .eq("user_id", context.userId)
-          .single(),
-      ]);
-    if (error) throw new Error(error.message);
-    if (patientError) throw new Error(patientError.message);
-
-    let photoUrl: string | null = null;
-    if (patientProfile.profile_photo_path) {
-      const { data: signed } = await supabaseAdmin.storage
-        .from("profile-photos")
-        .createSignedUrl(patientProfile.profile_photo_path, 3600);
-      photoUrl = signed?.signedUrl ?? null;
-    }
+    const profile = mockDb.profiles.find((p) => p.id === context.userId);
+    const patientProfile = mockDb.patientProfiles.find((p) => p.userId === context.userId);
+    if (!profile || !patientProfile) throw new Error("Profile not found");
 
     return {
-      fullName: profile.full_name,
+      fullName: profile.fullName,
       phone: profile.phone,
-      dateOfBirth: patientProfile.date_of_birth,
+      dateOfBirth: patientProfile.dateOfBirth,
       gender: patientProfile.gender,
-      photoUrl,
+      photoUrl: patientProfile.profilePhotoPath,
     };
   });
 
 export const updatePatientProfile = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireMockAuth])
   .inputValidator((input) => updatePatientProfileSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireActivePatient(supabaseAdmin, context.userId);
+    requireActivePatient(context.userId);
 
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .update({ full_name: data.fullName, phone: data.phone })
-      .eq("id", context.userId);
-    if (profileError) throw new Error(profileError.message);
+    const profile = mockDb.profiles.find((p) => p.id === context.userId);
+    const patientProfile = mockDb.patientProfiles.find((p) => p.userId === context.userId);
+    if (!profile || !patientProfile) throw new Error("Profile not found");
 
-    const patientUpdate: TablesUpdate<"patient_profiles"> = {
-      date_of_birth: data.dateOfBirth,
-      gender: data.gender,
-    };
-    if (data.profilePhotoPath !== undefined)
-      patientUpdate.profile_photo_path = data.profilePhotoPath;
-    const { error } = await supabaseAdmin
-      .from("patient_profiles")
-      .update(patientUpdate)
-      .eq("user_id", context.userId);
-    if (error) throw new Error(error.message);
+    profile.fullName = data.fullName;
+    profile.phone = data.phone;
+    profile.updatedAt = isoNow();
+
+    patientProfile.dateOfBirth = data.dateOfBirth;
+    patientProfile.gender = data.gender;
+    if (data.profilePhotoPath !== undefined) patientProfile.profilePhotoPath = data.profilePhotoPath;
+    patientProfile.updatedAt = isoNow();
 
     return { ok: true };
   });

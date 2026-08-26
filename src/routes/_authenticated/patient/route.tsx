@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
+import { logout, SESSION_STORAGE_KEY } from "@/lib/mock-auth";
 import { dashboardForRole } from "@/lib/portal-navigation";
 import { usePortalContext } from "@/components/portal-shell";
 import { listNotifications } from "@/lib/patient.functions";
@@ -90,10 +90,13 @@ function PatientLayout() {
     }
   }, [portal, navigate]);
 
+  const doLogout = useServerFn(logout);
+
   async function handleSignOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
+    await doLogout().catch(() => undefined);
+    window.localStorage.removeItem(SESSION_STORAGE_KEY);
     navigate({ to: "/auth", replace: true });
   }
 

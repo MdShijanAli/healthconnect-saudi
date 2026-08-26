@@ -1,12 +1,13 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { SESSION_STORAGE_KEY } from "@/lib/mock-auth";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
+  beforeLoad: () => {
+    const token =
+      typeof window !== "undefined" ? window.localStorage.getItem(SESSION_STORAGE_KEY) : null;
+    if (!token) throw redirect({ to: "/auth" });
+    return { token };
   },
   component: () => <Outlet />,
 });
