@@ -190,11 +190,11 @@ function Index() {
               <div className="relative">
                 <div className="gradient-brand absolute -inset-3 rounded-[2rem] opacity-15 blur-2xl" />
                 <img
-                  src={heroDashboard}
-                  alt="Sehaty Cloud clinic dashboard showing appointments, patients and analytics"
+                  src={heroConsult}
+                  alt="Doctor consulting with a patient in a Saudi clinic"
                   width={1600}
-                  height={1104}
-                  className="relative w-full rounded-3xl border border-border/70 shadow-lift"
+                  height={1200}
+                  className="relative w-full rounded-3xl border border-border/70 object-cover shadow-lift"
                 />
               </div>
             </div>
