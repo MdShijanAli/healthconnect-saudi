@@ -20,8 +20,10 @@ export type Database = {
           bio: string
           consultation_fee: number
           created_at: string
+          is_active: boolean
           medical_license_number: string
           profile_photo_path: string | null
+          review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           specialization: string
@@ -34,8 +36,10 @@ export type Database = {
           bio: string
           consultation_fee: number
           created_at?: string
+          is_active?: boolean
           medical_license_number: string
           profile_photo_path?: string | null
+          review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           specialization: string
@@ -48,8 +52,10 @@ export type Database = {
           bio?: string
           consultation_fee?: number
           created_at?: string
+          is_active?: boolean
           medical_license_number?: string
           profile_photo_path?: string | null
+          review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           specialization?: string
@@ -109,6 +115,7 @@ export type Database = {
       }
       patient_bookings: {
         Row: {
+          amount: number
           appointment_date: string
           appointment_time: string
           created_at: string
@@ -124,6 +131,7 @@ export type Database = {
           visit_type: string
         }
         Insert: {
+          amount?: number
           appointment_date: string
           appointment_time: string
           created_at?: string
@@ -139,6 +147,7 @@ export type Database = {
           visit_type: string
         }
         Update: {
+          amount?: number
           appointment_date?: string
           appointment_time?: string
           created_at?: string
@@ -160,6 +169,7 @@ export type Database = {
           created_at: string
           date_of_birth: string
           gender: string
+          is_blocked: boolean
           updated_at: string
           user_id: string
         }
@@ -167,6 +177,7 @@ export type Database = {
           created_at?: string
           date_of_birth: string
           gender: string
+          is_blocked?: boolean
           updated_at?: string
           user_id: string
         }
@@ -174,6 +185,7 @@ export type Database = {
           created_at?: string
           date_of_birth?: string
           gender?: string
+          is_blocked?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -199,6 +211,72 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      specializations: {
+        Row: {
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscription_plans: {
+        Row: {
+          billing_cycle: string
+          created_at: string
+          features: string[]
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string
+          created_at?: string
+          features?: string[]
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          created_at?: string
+          features?: string[]
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
