@@ -14,6 +14,111 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          amount: number
+          appointment_date: string
+          appointment_time: string
+          cancel_reason: string | null
+          created_at: string
+          doctor_id: string
+          id: string
+          patient_id: string
+          reason: string
+          status: Database["public"]["Enums"]["appointment_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          appointment_date: string
+          appointment_time: string
+          cancel_reason?: string | null
+          created_at?: string
+          doctor_id: string
+          id?: string
+          patient_id: string
+          reason?: string
+          status?: Database["public"]["Enums"]["appointment_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          appointment_date?: string
+          appointment_time?: string
+          cancel_reason?: string | null
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          patient_id?: string
+          reason?: string
+          status?: Database["public"]["Enums"]["appointment_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      doctor_availability: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          end_time: string
+          id: string
+          is_enabled: boolean
+          start_time: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          end_time?: string
+          id?: string
+          is_enabled?: boolean
+          start_time?: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          end_time?: string
+          id?: string
+          is_enabled?: boolean
+          start_time?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: []
+      }
+      doctor_medicines: {
+        Row: {
+          category: string
+          common_dosage: string
+          created_at: string
+          doctor_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          common_dosage?: string
+          created_at?: string
+          doctor_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          common_dosage?: string
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       doctor_profiles: {
         Row: {
           approval_status: Database["public"]["Enums"]["doctor_approval_status"]
@@ -113,6 +218,33 @@ export type Database = {
         }
         Relationships: []
       }
+      doctor_time_off: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          id: string
+          note: string
+          off_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          id?: string
+          note?: string
+          off_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          note?: string
+          off_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       patient_bookings: {
         Row: {
           amount: number
@@ -190,6 +322,91 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      prescription_items: {
+        Row: {
+          created_at: string
+          dosage: string
+          duration: string
+          frequency: string
+          id: string
+          instructions: string
+          medicine_name: string
+          prescription_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          dosage?: string
+          duration?: string
+          frequency?: string
+          id?: string
+          instructions?: string
+          medicine_name: string
+          prescription_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          dosage?: string
+          duration?: string
+          frequency?: string
+          id?: string
+          instructions?: string
+          medicine_name?: string
+          prescription_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescription_items_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prescriptions: {
+        Row: {
+          advice: string
+          appointment_id: string
+          created_at: string
+          diagnosis: string
+          doctor_id: string
+          id: string
+          patient_id: string
+          updated_at: string
+        }
+        Insert: {
+          advice?: string
+          appointment_id: string
+          created_at?: string
+          diagnosis?: string
+          doctor_id: string
+          id?: string
+          patient_id: string
+          updated_at?: string
+        }
+        Update: {
+          advice?: string
+          appointment_id?: string
+          created_at?: string
+          diagnosis?: string
+          doctor_id?: string
+          id?: string
+          patient_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescriptions_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: true
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -320,6 +537,7 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "doctor" | "patient"
+      appointment_status: "requested" | "confirmed" | "completed" | "cancelled"
       doctor_approval_status: "pending_approval" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -449,6 +667,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "doctor", "patient"],
+      appointment_status: ["requested", "confirmed", "completed", "cancelled"],
       doctor_approval_status: ["pending_approval", "approved", "rejected"],
     },
   },
